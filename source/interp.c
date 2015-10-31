@@ -464,8 +464,11 @@ value_t eval_assign(
         // If this is a variable from an outer function
         if (ref->decl->fun != clos->fun)
         {
-            // TODO
-            assert (false);
+            assert (ref->idx < clos->fun->free_vars->len);
+            cell_t* cell = clos->cells[ref->idx];
+
+            cell->word = val.word;
+            cell->tag = val.tag;
 
             return val;
         }
@@ -527,8 +530,14 @@ value_t eval_expr(
         // If this is a variable from an outer function
         if (ref->decl->fun != clos->fun)
         {
-            // TODO
-            assert (false);
+            assert (ref->idx < clos->fun->free_vars->len);
+            cell_t* cell = clos->cells[ref->idx];
+
+            value_t value;
+            value.word = cell->word;
+            value.tag = cell->tag;
+
+            return value;
         }
 
         // Check that the ref index is valid
@@ -701,12 +710,31 @@ value_t eval_expr(
     // Function/closure expression
     if (shape == SHAPE_AST_FUN)
     {
-        ast_fun_t* fun = (ast_fun_t*)expr;
+        ast_fun_t* nested = (ast_fun_t*)expr;
 
-        // Allocate a closure of the function
-        clos_t* clos = clos_alloc(fun);
+        // Allocate a closure of the nested function
+        clos_t* new_clos = clos_alloc(nested);
 
-        return value_from_heapptr((heapptr_t)clos, TAG_CLOS);
+        // For each free (closure) variable of the nested function
+        for (size_t i = 0; i < nested->free_vars->len; ++i)
+        {
+            ast_decl_t* decl = array_get(nested->free_vars, i).word.decl;
+
+            // If the variable is from this function
+            if (decl->fun == clos->fun)
+            {
+                new_clos->cells[i] = locals[decl->idx].word.cell;
+            }
+            else
+            {
+                // TODO: find the free variable index for this variable
+
+
+                assert (false);
+            }
+        }
+
+        return value_from_heapptr((heapptr_t)new_clos, TAG_CLOS);
     }
 
     // Call expression
@@ -909,12 +937,9 @@ void test_interp()
     test_eval_int("let x = 3    let f = fun () x    x = 4", 4);
     test_eval_int("let x = 3    let f = fun () x    x", 3);
 
-
-
-
-
-    // TODO: test closure variable capture
-    //test_eval_int("(let a = 3) (let f = fun () a) f()", 3);
+    // Reading and assigning to a captured variable
+    test_eval_int("let a = 3    let f = fun () a    f()", 3);
+    test_eval_int("let a = 3    let f = fun () a=2  f()   a", 2);
 
 
 
