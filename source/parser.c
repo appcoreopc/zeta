@@ -449,9 +449,11 @@ heapptr_t parse_string(input_t* input, char endCh)
     buf[len] = '\0';
 
     // Get the interned version of this string
-    heapptr_t heap_val = vm_get_cstr(buf);
+    string_t* str = vm_get_cstr(buf);
+
     free(buf);
-    return heap_val;
+
+    return (heapptr_t)str;
 }
 
 /**
