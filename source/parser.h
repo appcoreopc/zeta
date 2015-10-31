@@ -78,20 +78,14 @@ typedef struct
 {
     shapeidx_t shape;
 
-    /// Local (stack) index
+    /// Stack or mutable cell index
     uint32_t idx;
-
-    /// Global variable flag
-    bool global;
-
-    /// Escaping/captured variable (stored in a mutable cell)
-    bool esc;
-
-    /// Local variable (from this function)
-    bool local;
 
     /// Identifier name string
     string_t* name;
+
+    /// Resolved declaration, null if global
+    ast_decl_t* decl;
 
 } ast_ref_t;
 
@@ -113,6 +107,9 @@ typedef struct ast_decl
 
     /// Identifier name string
     string_t* name;
+
+    /// Function the declaration belongs to
+    ast_fun_t* fun;
 
 } ast_decl_t;
 

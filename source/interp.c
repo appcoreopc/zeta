@@ -71,6 +71,10 @@ void find_decls(heapptr_t expr, ast_fun_t* fun)
     {
         ast_decl_t* decl = (ast_decl_t*)expr;
 
+        // Mark the declaration as belonging to this function
+        assert (fun != NULL);
+        decl->fun = fun;
+
         // If this variable is already declared, do nothing
         for (size_t i = 0; i < fun->local_decls->len; ++i)
         {
@@ -156,6 +160,75 @@ void find_decls(heapptr_t expr, ast_fun_t* fun)
     assert (false);
 }
 
+/**
+Find the declaration corresponding to a reference,
+possibly from outer (nested) scope levels
+*/
+ast_decl_t* find_decl(ast_ref_t* ref, ast_fun_t* cur_fun)
+{
+    // For each local declaration
+    for (size_t i = 0; i < cur_fun->local_decls->len; ++i)
+    {
+        ast_decl_t* decl = array_get(cur_fun->local_decls, i).word.decl;
+
+        if (decl->name == ref->name)
+            return decl;
+    }
+
+    if (cur_fun->parent == NULL)
+        return NULL;
+
+    return find_decl(ref, cur_fun->parent);
+}
+
+/**
+Thread an escaping variable through nested functions
+*/
+void thread_esc_var(ast_ref_t* ref, ast_fun_t* ref_fun, ast_fun_t* cur_fun)
+{
+    // If the variable is captured by an inner function
+    if (ref_fun != cur_fun)
+    {
+        // If the variable is already marked escaping here, stop
+        for (size_t i = 0; i < cur_fun->esc_vars->len; ++i)
+        {
+            ast_decl_t* decl = array_get(cur_fun->esc_vars, i).word.decl;
+            if (decl == ref->decl)
+                return;
+        }
+
+        // Add the variable to the escaping variable set
+        array_set_obj(
+            cur_fun->esc_vars, 
+            cur_fun->esc_vars->len,
+            (heapptr_t)ref->decl
+        );
+    }
+
+    // If the variable comes from an inner function
+    if (ref->decl->fun != cur_fun)
+    {
+        // If the variable is already marked as free here, stop
+        for (size_t i = 0; i < cur_fun->free_vars->len; ++i)
+        {
+            ast_decl_t* decl = array_get(cur_fun->free_vars, i).word.decl;
+            if (decl == ref->decl)
+                return;
+        }
+
+        // Add the variable to the free variable set
+        array_set_obj(
+            cur_fun->free_vars, 
+            cur_fun->free_vars->len,
+            (heapptr_t)ref->decl
+        );
+
+        assert (ref->decl->fun != NULL);
+        assert (cur_fun->parent != NULL);
+        thread_esc_var(ref, ref_fun, cur_fun->parent);
+    }
+}
+
 void var_res(heapptr_t expr, ast_fun_t* fun)
 {
     // Get the shape of the AST node
@@ -190,93 +263,42 @@ void var_res(heapptr_t expr, ast_fun_t* fun)
     {
         ast_ref_t* ref = (ast_ref_t*)expr;
 
-        // For each scope
-        ast_fun_t* cur;
-        for (cur = fun; cur != NULL; cur = cur->parent)
+        // Find the declaration for this reference
+        ast_decl_t* decl = find_decl(ref, fun);
+
+        // If this is a global variable
+        if (decl == NULL)
         {
-            // For each local declaration
-            for (size_t i = 0; i < cur->local_decls->len; ++i)
-            {
-                ast_decl_t* decl = array_get(cur->local_decls, i).word.decl;
-
-                if (decl->name != ref->name)
-                    continue;
-
-                // Mark the reference as escaping or not
-                ref->esc = decl->esc;
-
-                // If the variable is from this scope
-                if (cur == fun)
-                {
-                    assert (decl->idx < cur->local_decls->len);
-
-                    // Store the index of this local
-                    ref->idx = decl->idx;
-
-                    // The variable is from this scope
-                    ref->local = true;
-
-                    /*
-                    printf("resolved local\n");
-                    string_print(ref->name); printf("\n");
-                    printf("local->idx=%d\n", local->idx);
-                    printf("\n");*/
-
-                    return;
-                }
-
-                // The variable is not from this scope                
-                ref->local = false;
-
-
-
-
-
-
-                // TODO: Need to check if we've already captured it
-                // Implement a recursive "add_capt_var" function?
-                //assert (false);
-
-
-                // Assign the reference a captured mutable cell index
-                ref->idx = fun->free_vars->len;
-
-
-
-                // FIXME: only do this if we haven't already captured it
-                // Thread the local as a closure variable
-                ast_fun_t* clos;
-                for (clos = fun; clos != cur; clos = clos->parent)
-                {
-                    array_set_obj(
-                        clos->free_vars, 
-                        clos->free_vars->len,
-                        (heapptr_t)decl
-                    );
-                }
-
-                // The variable is from an outer scope
-                // Mark the declaration as escaping
-                decl->esc = true;
-
-                // TODO: add to esc_vars set
-
-
-
-
-
-                return;
-            }
+            assert (false);
         }
 
-        /*
-        printf("global ref\n");
-        string_print(ref->name);
-        printf("\n");
-        */
+        // Store the declaration on the reference
+        assert (decl->fun != NULL);
+        ref->decl = decl;
 
-        // If unresolved, mark as global
-        ref->global = true;
+        // If the variable is from this scope
+        if (decl->fun == fun)
+        {
+            // Store the index of this local
+            assert (decl->idx < fun->local_decls->len);
+            ref->idx = decl->idx;
+        }
+        else
+        {
+            // Mark the variable as escaping
+            decl->esc = true;
+
+            // Thread the escaping variable through nested functions
+            thread_esc_var(ref, fun, fun);
+
+            // Find the mutable cell index for the variable
+            for (size_t i = 0; i < fun->free_vars->len; ++i)
+            {
+                ast_decl_t* decl = array_get(fun->free_vars, i).word.decl;
+                if (decl == ref->decl)
+                    ref->idx = i;
+            }
+        }
 
         return;
     }
@@ -360,10 +382,10 @@ void var_res_pass(ast_fun_t* fun, ast_fun_t* parent)
     // Add the function parameters to the local scope
     for (size_t i = 0; i < fun->param_decls->len; ++i)
     {
-        value_t decl_val = array_get(fun->param_decls, i);
-        ast_decl_t* decl = decl_val.word.decl;
-        decl->idx = fun->local_decls->len;
-        array_set(fun->local_decls, i, decl_val);
+        find_decls(
+            array_get(fun->param_decls, i).word.heapptr,
+            fun
+        );
     }
 
     // Find declarations in the function body
@@ -433,7 +455,16 @@ value_t eval_assign(
         ast_ref_t* ref = (ast_ref_t*)lhs_expr;
 
         // If this is a global variable
-        if (ref->global)
+        if (ref->decl == NULL)
+        {
+            // TODO
+            assert (false);
+
+            return val;
+        }
+
+        // If this is a variable from an outer function
+        if (ref->decl->fun != clos->fun)
         {
             // TODO
             assert (false);
@@ -442,15 +473,14 @@ value_t eval_assign(
         }
 
         // Check that the ref index is valid
-        ast_fun_t* fun = clos->fun;
-        if (ref->idx > fun->local_decls->len)
+        if (ref->idx > clos->fun->local_decls->len)
         {
             printf("assignment to invalid index\n");
             exit(-1);
         }
 
         // If this an escaping variable (captured by a closure)
-        if (ref->esc)
+        if (ref->decl->esc)
         {
             // Escaping variables are stored in mutable cells
             // Pointers to the cells are found on the closure object
@@ -484,27 +514,37 @@ value_t eval_expr(
     // otherwise this interpreter can't handle it
     shapeidx_t shape = get_shape(expr);
 
-    // Variable reference
+    // Variable reference (read)
     if (shape == SHAPE_AST_REF)
     {
         ast_ref_t* ref = (ast_ref_t*)expr;
 
-        // TODO: handle globals
-        assert (!ref->global);
+        // If this is a global variable
+        if (ref->decl == NULL)
+        {
+            // TODO
+            assert (false);
+        }
 
-        // Check that the reference was resolved
-        ast_fun_t* fun = clos->fun;
-        if (ref->idx > fun->local_decls->len)
+        // If this is a variable from an outer function
+        if (ref->decl->fun != clos->fun)
+        {
+            // TODO
+            assert (false);
+        }
+
+        // Check that the ref index is valid
+        if (ref->idx > clos->fun->local_decls->len)
         {
             printf("invalid variable reference\n");
             printf("ref->name="); string_print(ref->name); printf("\n");
             printf("ref->idx=%d\n", ref->idx);
-            printf("local_decls->len=%d\n", fun->local_decls->len);
+            printf("local_decls->len=%d\n", clos->fun->local_decls->len);
             exit(-1);
         }
 
         // If this an escaping variable (captured by a closure)
-        if (ref->esc)
+        if (ref->decl->esc)
         {
             // Free variables are stored in mutable cells
             // Pointers to the cells are found on the closure object
