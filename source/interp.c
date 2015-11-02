@@ -194,12 +194,9 @@ void thread_esc_var(ast_ref_t* ref, ast_fun_t* ref_fun, ast_fun_t* cur_fun)
     if (ref->decl->fun == cur_fun && ref_fun != cur_fun)
     {
         // If the variable is already marked escaping here, stop
-        for (size_t i = 0; i < cur_fun->esc_locals->len; ++i)
-        {
-            ast_decl_t* decl = array_get(cur_fun->esc_locals, i).word.decl;
-            if (decl == ref->decl)
-                return;
-        }
+        uint32_t idx = array_indexof_ptr(cur_fun->esc_locals, (heapptr_t)ref->decl);
+        if (idx < cur_fun->esc_locals->len)
+            return;
 
         // Add the variable to the escaping variable set
         array_set_obj(
@@ -213,12 +210,9 @@ void thread_esc_var(ast_ref_t* ref, ast_fun_t* ref_fun, ast_fun_t* cur_fun)
     if (ref->decl->fun != cur_fun)
     {
         // If the variable is already marked as free here, stop
-        for (size_t i = 0; i < cur_fun->free_vars->len; ++i)
-        {
-            ast_decl_t* decl = array_get(cur_fun->free_vars, i).word.decl;
-            if (decl == ref->decl)
-                return;
-        }
+        uint32_t idx = array_indexof_ptr(cur_fun->free_vars, (heapptr_t)ref->decl);
+        if (idx < cur_fun->free_vars->len)
+            return;
 
         // Add the variable to the free variable set
         array_set_obj(
@@ -295,12 +289,8 @@ void var_res(heapptr_t expr, ast_fun_t* fun)
             thread_esc_var(ref, fun, fun);
 
             // Find the mutable cell index for the variable
-            for (size_t i = 0; i < fun->free_vars->len; ++i)
-            {
-                ast_decl_t* decl = array_get(fun->free_vars, i).word.decl;
-                if (decl == ref->decl)
-                    ref->idx = i;
-            }
+            ref->idx = array_indexof_ptr(fun->free_vars, (heapptr_t)ref->decl);
+            assert (ref->idx < fun->free_vars->len);
         }
 
         return;
@@ -737,16 +727,9 @@ value_t eval_expr(
             }
             else
             {
-                // TODO: find the free variable index for this variable
-
-                printf("decl is not local\n");
-                string_print(decl->name);
-                printf("\n");
-
-                printf("decl->fun=%p\n", decl->fun);
-                printf("clos->fun=%p\n", clos->fun);
-
-                assert (false);
+                uint32_t free_idx = array_indexof_ptr(clos->fun->free_vars, (heapptr_t)decl);
+                assert (free_idx < clos->fun->free_vars->len);
+                new_clos->cells[i] = clos->cells[free_idx];
             }
         }
 
@@ -980,17 +963,10 @@ void test_interp()
     // Two levels of nesting
     test_eval_int("let f = fun () { let x = 7 fun() x }     let g = f()     g()", 7);
 
-    // TODO
     // Capture by inner from outer
-
-
+    test_eval_int("let n = 5    let f = fun () { fun() n }     let g = f()     g()", 5);
 
     // Captured function parameter
     test_eval_int("let f = fun (n) { fun () n }      let g = f(88)   g()", 88);
-
-
-
-
-
 }
 

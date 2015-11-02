@@ -261,6 +261,7 @@ void array_set(array_t* array, uint32_t idx, value_t val);
 void array_set_obj(array_t* array, uint32_t idx, heapptr_t val);
 value_t array_get(array_t* array, uint32_t idx);
 heapptr_t array_get_ptr(array_t* array, uint32_t idx);
+uint32_t array_indexof_ptr(array_t* array, heapptr_t ptr);
 
 shape_t* shape_alloc(
     shape_t* parent,

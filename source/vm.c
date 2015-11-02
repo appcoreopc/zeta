@@ -505,6 +505,15 @@ heapptr_t array_get_ptr(array_t* array, uint32_t idx)
     return array_get(array, idx).word.heapptr;
 }
 
+uint32_t array_indexof_ptr(array_t* array, heapptr_t ptr)
+{
+    for (uint32_t i = 0; i < array->len; ++i)
+        if (array_get_ptr(array, i) == ptr)
+            return i;
+
+    return 0xFFFFFFFF;
+}
+
 //============================================================================
 // Shapes and objects
 //============================================================================
