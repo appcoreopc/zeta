@@ -31,10 +31,10 @@ test: debug
 	./zeta --test
 
 debug: *.c
-	$(CC) $(CFLAGS) $(CFLAGS_debug) -o zeta vm.c parser.c interp.c main.c
+	$(CC) $(CFLAGS) $(CFLAGS_debug) -o zeta util.c vm.c parser.c interp.c main.c
 
 release: *.c
-	$(CC) $(CFLAGS) $(CFLAGS_release) -o zeta vm.c parser.c interp.c main.c
+	$(CC) $(CFLAGS) $(CFLAGS_release) -o zeta util.c vm.c parser.c interp.c main.c
 
 clean:
 	rm -f *.o

@@ -9,6 +9,7 @@
 #endif
 #include "interp.h"
 #include "parser.h"
+#include "util.h"
 
 /// Shape indices for mutable cells and closures
 /// These are initialized in init_interp(), see interp.c
@@ -848,6 +849,24 @@ value_t eval_str(const char* cstr, const char* src_name)
 
     // Evaluate the unit function body in the local frame
     return eval_expr(unit_fun->body_expr, unit_clos, locals);
+}
+
+/**
+Evaluate a source file
+*/
+value_t eval_file(const char* file_name)
+{
+    char* src_text = read_file(file_name);
+
+    printf("evaluating string, len=%ld\n", strlen(src_text));
+
+    value_t value = eval_str(src_text, file_name);
+
+    printf("freeing C string\n");
+
+    free(src_text);
+
+    return value;
 }
 
 void test_eval(char* cstr, value_t expected)
