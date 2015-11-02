@@ -43,6 +43,9 @@ clos_t* clos_alloc(ast_fun_t* fun)
     return clos;
 }
 
+/**
+Find all declarations within an AST subtree
+*/
 void find_decls(heapptr_t expr, ast_fun_t* fun)
 {
     // Get the shape of the AST node
@@ -185,21 +188,23 @@ Thread an escaping variable through nested functions
 */
 void thread_esc_var(ast_ref_t* ref, ast_fun_t* ref_fun, ast_fun_t* cur_fun)
 {
-    // If the variable is captured by an inner function
-    if (ref_fun != cur_fun)
+    assert (ref->decl && ref->decl->fun);
+
+    // If the variable is an escaping local of this function
+    if (ref->decl->fun == cur_fun && ref_fun != cur_fun)
     {
         // If the variable is already marked escaping here, stop
-        for (size_t i = 0; i < cur_fun->esc_vars->len; ++i)
+        for (size_t i = 0; i < cur_fun->esc_locals->len; ++i)
         {
-            ast_decl_t* decl = array_get(cur_fun->esc_vars, i).word.decl;
+            ast_decl_t* decl = array_get(cur_fun->esc_locals, i).word.decl;
             if (decl == ref->decl)
                 return;
         }
 
         // Add the variable to the escaping variable set
         array_set_obj(
-            cur_fun->esc_vars, 
-            cur_fun->esc_vars->len,
+            cur_fun->esc_locals, 
+            cur_fun->esc_locals->len,
             (heapptr_t)ref->decl
         );
     }
@@ -381,9 +386,10 @@ void var_res_pass(ast_fun_t* fun, ast_fun_t* parent)
     for (size_t i = 0; i < fun->param_decls->len; ++i)
     {
         find_decls(
-            array_get(fun->param_decls, i).word.heapptr,
+            array_get_ptr(fun->param_decls, i),
             fun
         );
+        assert (array_get(fun->param_decls, i).word.decl->fun == fun);
     }
 
     // Find declarations in the function body
@@ -416,13 +422,11 @@ Evaluate an assignment expression
 */
 value_t eval_assign(
     heapptr_t lhs_expr,
-    heapptr_t rhs_expr,
+    value_t val,
     clos_t* clos,
     value_t* locals
 )
 {
-    value_t val = eval_expr(rhs_expr, clos, locals);
-
     shapeidx_t shape = get_shape(lhs_expr);
 
     // Assignment to variable declaration
@@ -510,6 +514,8 @@ value_t eval_expr(
     value_t* locals
 )
 {
+    //printf("eval_expr\n");
+
     // Get the shape of the AST node
     // Note: AST nodes must match the shapes defined in init_parser,
     // otherwise this interpreter can't handle it
@@ -614,9 +620,11 @@ value_t eval_expr(
         // Assignment
         if (binop->op == &OP_ASSIGN)
         {
+            value_t val = eval_expr(binop->right_expr, clos, locals);
+
             return eval_assign(
                 binop->left_expr, 
-                binop->right_expr, 
+                val, 
                 clos,
                 locals
             );
@@ -710,6 +718,8 @@ value_t eval_expr(
     // Function/closure expression
     if (shape == SHAPE_AST_FUN)
     {
+        //printf("creating closure\n");
+
         ast_fun_t* nested = (ast_fun_t*)expr;
 
         // Allocate a closure of the nested function
@@ -729,10 +739,18 @@ value_t eval_expr(
             {
                 // TODO: find the free variable index for this variable
 
+                printf("decl is not local\n");
+                string_print(decl->name);
+                printf("\n");
+
+                printf("decl->fun=%p\n", decl->fun);
+                printf("clos->fun=%p\n", clos->fun);
 
                 assert (false);
             }
         }
+
+        assert (new_clos->fun == nested);
 
         return value_from_heapptr((heapptr_t)new_clos, TAG_CLOS);
     }
@@ -770,21 +788,37 @@ value_t eval_expr(
             sizeof(value_t) * fptr->local_decls->len
         );
 
+        // Allocate mutable cells for the escaping variables
+        for (size_t i = 0; i < fptr->esc_locals->len; ++i)
+        {
+            ast_decl_t* decl = array_get(fptr->esc_locals, i).word.decl;
+            assert (decl->esc);
+            assert (decl->idx < fptr->local_decls->len);
+            callee_locals[decl->idx] = value_from_obj((heapptr_t)cell_alloc());
+        }
+
         // Evaluate the argument values
         for (size_t i = 0; i < arg_exprs->len; ++i)
         {
             //printf("evaluating arg %ld\n", i);
 
-            callee_locals[i] = eval_expr(
+            heapptr_t param_decl = array_get_ptr(fptr->param_decls, i);
+
+            // Evaluate the parameter value
+            value_t arg_val = eval_expr(
                 array_get_ptr(arg_exprs, i),
                 clos,
                 locals
             );
+
+            // Assign the value to the parameter
+            eval_assign(
+                param_decl,
+                arg_val,
+                callee,
+                callee_locals
+            );
         }
-
-        // TODO: allocate closure cells for the callee's captured variables
-
-        //printf("evaluating function body\n");
 
         // Evaluate the unit function body in the local frame
         return eval_expr(fptr->body_expr, callee, callee_locals);
@@ -819,16 +853,15 @@ value_t eval_str(const char* cstr, const char* src_name)
     clos_t* unit_clos = clos_alloc(unit_fun);
 
     // Allocate closure cells for the escaping variables
-    for (size_t i = 0; i < unit_fun->local_decls->len; ++i)
+    for (size_t i = 0; i < unit_fun->esc_locals->len; ++i)
     {
-        ast_decl_t* decl = array_get(unit_fun->local_decls, i).word.decl;
-        if (decl->esc == true)
-        {
-            //printf("allocating cell\n");
-            assert (decl->idx < unit_fun->local_decls->len);
-            locals[decl->idx] = value_from_obj((heapptr_t)cell_alloc());
-        }
+        ast_decl_t* decl = array_get(unit_fun->esc_locals, i).word.decl;
+        assert (decl->esc);
+        assert (decl->idx < unit_fun->local_decls->len);
+        locals[decl->idx] = value_from_obj((heapptr_t)cell_alloc());
     }
+
+    assert (unit_clos->fun == unit_fun);
 
     // Evaluate the unit function body in the local frame
     return eval_expr(unit_fun->body_expr, unit_clos, locals);
@@ -941,14 +974,19 @@ void test_interp()
     test_eval_int("let a = 3    let f = fun () a    f()", 3);
     test_eval_int("let a = 3    let f = fun () a=2  f()   a", 2);
 
+    // Recursive function
+    test_eval_int("let fib = fun (n) { if n < 2 then n else fib(n-1) + fib(n-2) } fib(11)", 89);
+
+    // Two levels of nesting
+    test_eval_int("let f = fun () { let x = 7 fun() x }     let g = f()     g()", 7);
+
+    // TODO
+    // Capture by inner from outer
 
 
 
-
-    // TODO: recursive function, closure variables, fibonacci
-
-
-
+    // Captured function parameter
+    test_eval_int("let f = fun (n) { fun () n }      let g = f(88)   g()", 88);
 
 
 

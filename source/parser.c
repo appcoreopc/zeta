@@ -314,7 +314,7 @@ heapptr_t ast_fun_alloc(
     node->parent = NULL;
     node->param_decls = param_decls;
     node->local_decls = array_alloc(4);
-    node->esc_vars = array_alloc(4);
+    node->esc_locals = array_alloc(4);
     node->free_vars = array_alloc(4);
     node->body_expr = body_expr;
     return (heapptr_t)node;

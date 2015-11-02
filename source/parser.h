@@ -250,8 +250,8 @@ typedef struct ast_fun
     /// Note: Variables captured by nested functions have the capt flag set
     array_t* local_decls;
 
-    // Set of variables escaping into inner/nested functions
-    array_t* esc_vars;
+    // Set of local variables escaping into inner/nested functions
+    array_t* esc_locals;
 
     /// Set of variables captured from outer/parent functions
     /// Note: this does not include variables from the global object
