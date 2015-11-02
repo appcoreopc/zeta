@@ -354,6 +354,7 @@ heapptr_t parse_ident(input_t* input)
 
     // Copy the characters
     strncpy(str->data, input->str->data + startIdx, len);
+    str->data[len] = '\0';
 
     return (heapptr_t)vm_get_tbl_str(str);
 }

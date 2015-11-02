@@ -540,7 +540,7 @@ value_t eval_expr(
         if (ref->idx > clos->fun->local_decls->len)
         {
             printf("invalid variable reference\n");
-            printf("ref->name="); string_print(ref->name); printf("\n");
+            printf("ref->name=%s\n", string_cstr(ref->name));
             printf("ref->idx=%d\n", ref->idx);
             printf("local_decls->len=%d\n", clos->fun->local_decls->len);
             exit(-1);

@@ -140,10 +140,11 @@ typedef struct string
     /// String hash
     uint32_t hash;
 
-    /// String length
+    /// String length (excluding null terminator)
     uint32_t len;
 
     /// Character data, variable length
+    /// UTF-8 formatting, with null-terminator character
     char data[];
 
 } string_t;
@@ -254,7 +255,7 @@ string_t* vm_get_tbl_str(string_t* str);
 string_t* vm_get_cstr(const char* cstr);
 
 string_t* string_alloc(uint32_t len);
-void string_print(string_t* str);
+char* string_cstr(string_t* str);
 
 array_t* array_alloc(uint32_t cap);
 void array_set(array_t* array, uint32_t idx, value_t val);

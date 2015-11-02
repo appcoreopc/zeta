@@ -82,11 +82,7 @@ void value_print(value_t value)
         break;
 
         case TAG_STRING:
-        {
-            putchar('"');
-            string_print((string_t*)value.word.heapptr);
-            putchar('"');
-        }
+        printf("\"%s\"", string_cstr(value.word.string));
         break;
 
         case TAG_ARRAY:
@@ -214,19 +210,20 @@ Note that this doesn't take string interning into account.
 */
 string_t* string_alloc(uint32_t len)
 {
-    string_t* str = (string_t*)vm_alloc(sizeof(string_t) + len, SHAPE_STRING);
+    string_t* str = (string_t*)vm_alloc(
+        sizeof(string_t) + len + 1,
+        SHAPE_STRING
+    );
 
     str->len = len;
 
     return str;
 }
 
-void string_print(string_t* str)
+char* string_cstr(string_t* str)
 {
-    assert (str != NULL);
-
-    for (size_t i = 0; i < str->len; ++i)
-        putchar(str->data[i]);
+    assert (str->data[str->len] == '\0');
+    return &str->data[0];
 }
 
 bool string_equals(string_t* stra, string_t* strb)
@@ -291,8 +288,17 @@ Find a string in the string table if duplicate, or add it to the string table
 */
 string_t* vm_get_tbl_str(string_t* str)
 {
-    // Get the hash code from the string object
-    uint32_t hashCode = str->hash;
+    assert (str->data[str->len] == '\0');
+
+    // Compute the hash code for the string
+    uint32_t hashCode = (uint32_t)murmur_hash_64a(
+        &str->data,
+        str->len,
+        1337
+    );
+
+    // Store the hash code on the string object
+    str->hash = hashCode;
 
     // Get the hash table index for this hash value
     uint32_t hashIndex = hashCode & (vm.stringtbl->len - 1);
@@ -440,12 +446,8 @@ string_t* vm_get_cstr(const char* cstr)
 
     strncpy(str->data, cstr, str->len);
 
-    // Compute the hash code for the string
-    str->hash = (uint32_t)murmur_hash_64a(
-        &str->data,
-        str->len,
-        1337
-    );
+    // Write the null terminator character
+    str->data[str->len] = '\0';
 
     // Find/add the string in the string table
     str = vm_get_tbl_str(str);
@@ -875,9 +877,7 @@ value_t object_get_prop(object_t* obj, string_t* prop_name)
     );
     */
 
-    printf("missing property: \"");
-    string_print(prop_name);
-    printf("\"\n");
+    printf("missing property: \"%s\"\n", string_cstr(prop_name));
     exit(-1);
 }
 
