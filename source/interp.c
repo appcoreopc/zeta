@@ -681,7 +681,7 @@ value_t eval_expr(
         ast_seq_t* seqexpr = (ast_seq_t*)expr;
         array_t* expr_list = seqexpr->expr_list;
 
-        value_t value;
+        value_t value = VAL_FALSE;
 
         for (size_t i = 0; i < expr_list->len; ++i)
         {
@@ -858,11 +858,7 @@ value_t eval_file(const char* file_name)
 {
     char* src_text = read_file(file_name);
 
-    printf("evaluating string, len=%ld\n", strlen(src_text));
-
     value_t value = eval_str(src_text, file_name);
-
-    printf("freeing C string\n");
 
     free(src_text);
 
@@ -909,6 +905,10 @@ void test_interp()
 {
     printf("core interpreter tests\n");
 
+    // Empty unit
+    test_eval_false("");
+
+    // Literals and constants
     test_eval_int("0", 0);
     test_eval_int("1", 1);
     test_eval_int("7", 7);
@@ -944,6 +944,7 @@ void test_interp()
     test_eval_int("[7+3][0]", 10);
 
     // Sequence expression
+    test_eval_false("{}");
     test_eval_int("{ 2 3 }", 3);
     test_eval_int("{ 2 3+7 }", 10);
     test_eval_int("3 7", 7);

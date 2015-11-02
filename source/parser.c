@@ -1079,6 +1079,11 @@ ast_fun_t* parse_unit(input_t* input)
     // Until the end of the input is reached
     for (;;)
     {
+        // If this is the end of the input, stop
+        input_eat_ws(input);
+        if (input_eof(input))
+            break;
+
         // Parse one expression
         heapptr_t expr = parse_expr(input);
 
@@ -1089,11 +1094,6 @@ ast_fun_t* parse_unit(input_t* input)
 
         // Write the expression to the array
         array_set_obj(arr, arr->len, expr);
-
-        // If this is the end of the input, stop
-        input_eat_ws(input);
-        if (input_eof(input))
-            break;
     }
 
     // Create a sequence expression from the expression list
@@ -1306,11 +1306,5 @@ void test_parser()
     test_parse("fun (x) { var y = x + 1 print(y) }");
     test_parse("if (x) then { println(x) } else { println(y) z }");
     test_parse_fail("{ a, b }");
-
-    // TODO: try parsing parser.zeta
-
-
-
-
 }
 
