@@ -827,6 +827,12 @@ value_t eval_str(const char* cstr, const char* src_name)
     // Parse the input as a source code unit
     ast_fun_t* unit_fun = parse_unit(&input);
 
+    if (unit_fun == NULL)
+    {
+        printf("unit failed to parse\n");
+        exit(-1);
+    }
+
     // Resolve all variables in the unit
     var_res_pass(unit_fun, NULL);
 
@@ -988,5 +994,8 @@ void test_interp()
 
     // Captured function parameter
     test_eval_int("let f = fun (n) { fun () n }      let g = f(88)   g()", 88);
+
+    eval_file("global.zeta");
+    eval_file("parser.zeta");
 }
 

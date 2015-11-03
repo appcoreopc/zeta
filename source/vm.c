@@ -470,12 +470,28 @@ array_t* array_alloc(uint32_t cap)
     arr->cap = cap;
     arr->len = 0;
 
+    arr->tbl = arr;
+
     return arr;
 }
 
 void array_set_length(array_t* array, uint32_t len)
 {
-    assert (len <= array->cap);
+    // If the array capacity needs to be extended
+    if (len > array->cap)
+    {
+        uint32_t new_cap = 2 * array->cap;
+        if (len > new_cap)
+            new_cap = len;
+
+        array_t* new_tbl = array_alloc(new_cap);
+
+        for (size_t i = 0; i < array->len; ++i)
+            new_tbl->elems[i] = array->tbl->elems[i];
+
+        array->tbl = new_tbl;
+    }
+
     array->len = len;
 }
 
@@ -484,7 +500,7 @@ void array_set(array_t* array, uint32_t idx, value_t val)
     if (idx >= array->len)
         array_set_length(array, idx+1);
 
-    array->elems[idx] = val;
+    array->tbl->elems[idx] = val;
 }
 
 void array_set_obj(array_t* array, uint32_t idx, heapptr_t ptr)
@@ -498,8 +514,9 @@ void array_set_obj(array_t* array, uint32_t idx, heapptr_t ptr)
 
 value_t array_get(array_t* array, uint32_t idx)
 {
+    assert (array != NULL);
     assert (idx < array->len);
-    return array->elems[idx];
+    return array->tbl->elems[idx];
 }
 
 heapptr_t array_get_ptr(array_t* array, uint32_t idx)

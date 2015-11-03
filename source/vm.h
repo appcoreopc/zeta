@@ -162,6 +162,9 @@ typedef struct array
     /// Array length
     uint32_t len;
 
+    /// Array element table (initially points to this object)
+    array_t* tbl;
+
     /// Array elements, variable length
     /// Note: each value is tagged
     value_t elems[];
@@ -234,8 +237,8 @@ typedef struct object
     /// Storae/payload capacity in bytes
     uint32_t cap;
 
-    /// Object extension table
-    object_t* ext_tbl;
+    /// Object extension, used if capacity exceeded
+    object_t* ext_obj;
 
     uint8_t payload[];
 

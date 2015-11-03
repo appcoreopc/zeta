@@ -1305,6 +1305,8 @@ void test_parser()
     test_parse("fun (x) { println(x) println(y) }");
     test_parse("fun (x) { var y = x + 1 print(y) }");
     test_parse("if (x) then { println(x) } else { println(y) z }");
+    test_parse_fail("{ a, }");
     test_parse_fail("{ a, b }");
+    test_parse_fail("fun foo () { a, }");
 }
 

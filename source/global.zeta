@@ -1,0 +1,32 @@
+/**
+This source file contains the global definitions available through
+other Zeta units.
+*/
+
+// TODO
+var print = fun (val)
+{
+
+}
+
+var println = fun (val)
+{
+    print(val)
+    print('\n')
+}
+
+// TODO
+var readline = fun ()
+{
+}
+
+// TODO
+var import = fun ()
+{
+}
+
+// TODO
+var assert = fun()
+{
+}
+
