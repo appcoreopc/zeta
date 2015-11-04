@@ -56,6 +56,7 @@ cell_t* cell_alloc();
 clos_t* clos_alloc(ast_fun_t* fun);
 
 void interp_init();
+void runtime_init();
 
 void var_res_pass(ast_fun_t* fun, ast_fun_t* parent);
 
@@ -64,6 +65,7 @@ value_t eval_str(const char* cstr, const char* src_name);
 value_t eval_file(const char* file_name);
 
 void test_interp();
+void test_runtime();
 
 #endif
 

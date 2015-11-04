@@ -519,6 +519,11 @@ value_t array_get(array_t* array, uint32_t idx)
     return array->tbl->elems[idx];
 }
 
+void array_append_obj(array_t* array, heapptr_t ptr)
+{
+    array_set_obj(array, array->len, ptr);
+}
+
 heapptr_t array_get_ptr(array_t* array, uint32_t idx)
 {
     return array_get(array, idx).word.heapptr;

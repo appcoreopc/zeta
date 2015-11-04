@@ -25,6 +25,17 @@ void interp_init()
     SHAPE_CLOS = shape_alloc_empty()->idx;
 }
 
+/**
+Initialize the runtime
+*/
+void runtime_init()
+{
+    // TODO
+
+
+
+}
+
 cell_t* cell_alloc()
 {
     cell_t* cell = (cell_t*)vm_alloc(sizeof(cell_t), SHAPE_CELL);
@@ -200,11 +211,7 @@ void thread_esc_var(ast_ref_t* ref, ast_fun_t* ref_fun, ast_fun_t* cur_fun)
             return;
 
         // Add the variable to the escaping variable set
-        array_set_obj(
-            cur_fun->esc_locals, 
-            cur_fun->esc_locals->len,
-            (heapptr_t)ref->decl
-        );
+        array_append_obj(cur_fun->esc_locals, (heapptr_t)ref->decl);
     }
 
     // If the variable comes from an inner function
@@ -216,11 +223,7 @@ void thread_esc_var(ast_ref_t* ref, ast_fun_t* ref_fun, ast_fun_t* cur_fun)
             return;
 
         // Add the variable to the free variable set
-        array_set_obj(
-            cur_fun->free_vars, 
-            cur_fun->free_vars->len,
-            (heapptr_t)ref->decl
-        );
+        array_append_obj(cur_fun->free_vars, (heapptr_t)ref->decl);
 
         assert (ref->decl->fun != NULL);
         assert (cur_fun->parent != NULL);
@@ -997,5 +1000,13 @@ void test_interp()
 
     eval_file("global.zeta");
     eval_file("parser.zeta");
+}
+
+void test_runtime()
+{
+
+
+
+
 }
 

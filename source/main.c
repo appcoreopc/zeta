@@ -36,21 +36,27 @@ void run_repl()
 
 int main(int argc, char** argv)
 {
-    vm_init();
-    parser_init();
-    interp_init();
+    // Check if we are in test mode
+    bool test = (argc == 2 && strcmp(argv[1], "--test") == 0);
 
-    // Test mode
-    if (argc == 2 && strcmp(argv[1], "--test") == 0)
-    {
+    vm_init();
+    if (test)
         test_vm();
+
+    parser_init();
+    if (test)
         test_parser();
+
+    interp_init();
+    if (test)
         test_interp();
-        return 0;
-    }
+
+    runtime_init();
+    if (test)
+        test_runtime();
 
     // File name passed
-    if (argc == 2)
+    if (argc == 2 && !test)
     {
         eval_file(argv[1]);
     }
