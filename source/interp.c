@@ -30,7 +30,35 @@ Initialize the runtime
 */
 void runtime_init()
 {
-    // TODO
+    // Parse the global unit
+    ast_fun_t* global_unit = parse_file("global.zeta");
+
+
+
+    // - mark its global decls as escaping
+    // - resolve decls in global.zeta on its own
+
+
+
+
+    // TODO: eval_unit
+
+    // Initialize the global unit
+    //eval_unit(global_unit);
+
+
+
+
+    // TODO: this will be done in eval_unit?
+    // make the .parent of new units point to global.zeta
+
+
+
+
+
+
+
+
 
 
 
@@ -819,16 +847,10 @@ value_t eval_expr(
 Evaluate the source code in a given string
 This can also be used to evaluate files
 */
-value_t eval_str(const char* cstr, const char* src_name)
+value_t eval_string(const char* cstr, const char* src_name)
 {
-    // Create a parser input stream object
-    input_t input = input_from_string(
-        vm_get_cstr(cstr),
-        vm_get_cstr(src_name)
-    );
-
     // Parse the input as a source code unit
-    ast_fun_t* unit_fun = parse_unit(&input);
+    ast_fun_t* unit_fun = parse_string(cstr, src_name);
 
     if (unit_fun == NULL)
     {
@@ -867,7 +889,7 @@ value_t eval_file(const char* file_name)
 {
     char* src_text = read_file(file_name);
 
-    value_t value = eval_str(src_text, file_name);
+    value_t value = eval_string(src_text, file_name);
 
     free(src_text);
 
@@ -878,7 +900,7 @@ void test_eval(char* cstr, value_t expected)
 {
     printf("%s\n", cstr);
 
-    value_t value = eval_str(cstr, "test");
+    value_t value = eval_string(cstr, "test");
 
     if (!value_equals(value, expected))
     {
@@ -998,12 +1020,19 @@ void test_interp()
     // Captured function parameter
     test_eval_int("let f = fun (n) { fun () n }      let g = f(88)   g()", 88);
 
-    eval_file("global.zeta");
-    eval_file("parser.zeta");
+    //eval_file("global.zeta");
 }
 
 void test_runtime()
 {
+    printf("core runtime tests\n");
+
+    // TODO: test that print resolves, != false
+    // try assert (true);
+
+
+
+
 
 
 

@@ -24,7 +24,7 @@ void run_repl()
         char* cstr = read_line();
 
         // Evaluate the code string
-        value_t value = eval_str(cstr, "shell");
+        value_t value = eval_string(cstr, "shell");
 
         free(cstr);
 

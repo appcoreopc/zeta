@@ -61,7 +61,7 @@ void runtime_init();
 void var_res_pass(ast_fun_t* fun, ast_fun_t* parent);
 
 value_t eval_expr(heapptr_t expr, clos_t* clos, value_t* locals);
-value_t eval_str(const char* cstr, const char* src_name);
+value_t eval_string(const char* cstr, const char* src_name);
 value_t eval_file(const char* file_name);
 
 void test_interp();

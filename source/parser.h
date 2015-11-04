@@ -265,14 +265,11 @@ typedef struct ast_fun
 
 char* srcpos_to_str(srcpos_t pos, char* buf);
 
-input_t input_from_string(string_t* str, string_t* src_name);
-bool input_eof(input_t* input);
-char input_peek_ch(input_t* input);
-void input_eat_ws(input_t* input);
-
 void parser_init();
+
 heapptr_t parse_expr(input_t* input);
-ast_fun_t* parse_unit(input_t* input);
+ast_fun_t* parse_string(const char* cstr, const char* src_name);
+ast_fun_t* parse_file(const char* file_name);
 
 void test_parser();
 

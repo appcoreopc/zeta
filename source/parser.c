@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <string.h>
 #include "parser.h"
+#include "util.h"
 #include "vm.h"
 
 /// Shape indices for AST nodes
@@ -397,9 +398,9 @@ heapptr_t parse_number(input_t* input)
 }
 
 /**
-Parse a string value
+Parse a string literal
 */
-heapptr_t parse_string(input_t* input, char endCh)
+heapptr_t parse_string_lit(input_t* input, char endCh)
 {
     size_t len = 0;
     size_t cap = 64;
@@ -837,11 +838,11 @@ heapptr_t parse_atom(input_t* input)
     // String literal
     if (input_match_ch(input, '\''))
     {
-        return parse_string(input, '\'');
+        return parse_string_lit(input, '\'');
     }
     if (input_match_ch(input, '"'))
     {
-        return parse_string(input, '"');
+        return parse_string_lit(input, '"');
     }
 
     // Array literal
@@ -1070,7 +1071,9 @@ heapptr_t parse_expr(input_t* input)
     return parse_expr_prec(input, 0);
 }
 
-/// Parse a source unit
+/**
+Parse a source unit from an input object
+*/
 ast_fun_t* parse_unit(input_t* input)
 {
     // Allocate an array with an initial capacity
@@ -1105,34 +1108,43 @@ ast_fun_t* parse_unit(input_t* input)
     return (ast_fun_t*)ast_fun_alloc(param_list, seq_expr);
 }
 
-/// Test that the parsing of a source unit succeeds
-void test_parse(char* cstr)
+/**
+Parse a source string as a unit
+*/
+ast_fun_t* parse_string(const char* cstr, const char* src_name)
 {
-    //printf("%s\n", cstr);
-
     input_t input = input_from_string(
         vm_get_cstr(cstr),
         vm_get_cstr("parser_test")
     );
 
-    ast_fun_t* unit = parse_unit(&input);
+    return parse_unit(&input);
+}
 
-    // Consume any remaining whitespace
-    input_eat_ws(&input);
+/**
+Parse a source file
+*/
+ast_fun_t* parse_file(const char* file_name)
+{
+    char* src_text = read_file(file_name);
+
+    ast_fun_t* unit_fun = parse_string(src_text, file_name);
+    
+    free(src_text);
+
+    return unit_fun;
+}
+
+/// Test that the parsing of a source unit succeeds
+void test_parse(char* cstr)
+{
+    //printf("%s\n", cstr);
+
+    ast_fun_t* unit = parse_string(cstr, "parser_test");
 
     if (!unit)
     {
         printf("failed to parse:\n\"%s\"\n", cstr);
-        exit(-1);
-    }
-
-    if (!input_eof(&input))
-    {
-        printf(
-            "unconsumed input:\n\"%s\"\nremains for:\n\"%s\"\n",
-            &cstr[input.idx],
-            cstr
-        );
         exit(-1);
     }
 }
@@ -1142,17 +1154,9 @@ void test_parse_fail(char* cstr)
 {
     //printf("%s\n", cstr);
 
-    input_t input = input_from_string(
-        vm_get_cstr(cstr),
-        vm_get_cstr("parser_fail_test")
-    );
+    ast_fun_t* unit = parse_string(cstr, "parser_fail_test");
 
-    ast_fun_t* unit = parse_unit(&input);
-
-    // Consume any remaining whitespace
-    input_eat_ws(&input);
-
-    if (unit && input_eof(&input))
+    if (unit)
     {
         printf("parsing did not fail for:\n\"%s\"\n", cstr);
         exit(-1);

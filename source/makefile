@@ -27,8 +27,11 @@ all: debug
 test_gdb: debug
 	gdb -ex run --args ./zeta --test
 
-test: debug
+test_valgrind: debug
 	valgrind --error-exitcode=1 ./zeta --test
+
+test: debug
+	./zeta --test
 
 debug: *.c
 	$(CC) $(CFLAGS) $(CFLAGS_debug) -o zeta util.c vm.c parser.c interp.c main.c
@@ -40,5 +43,5 @@ clean:
 	rm -f *.o
 
 # Tells make which targets are not files. 
-.PHONY: test test_gdb debug release all clean
+.PHONY: test test_gdb test_valgrind debug release all clean
 

@@ -18,5 +18,5 @@ branches:
         - master
 
 # Build a test binary and run tests
-script: make -C source test
+script: make -C source test_valgrind
 
