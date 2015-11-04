@@ -33,29 +33,40 @@ void runtime_init()
     // Parse the global unit
     ast_fun_t* global_unit = parse_file("global.zeta");
 
+    // Get the list of global expressions
+    assert (get_shape(global_unit->body_expr) == SHAPE_AST_SEQ);
+    array_t* exprs = ((ast_seq_t*)global_unit->body_expr)->expr_list;
+
+    // For each global expression
+    for (size_t i = 0; i < exprs->len; ++i)
+    {
+        heapptr_t expr = array_get_ptr(exprs, i);
+        if (get_shape(expr) != SHAPE_AST_BINOP)
+            continue;
+
+        ast_binop_t* binop = (ast_binop_t*)expr;
+        if (binop->op == &OP_ASSIGN)
+            continue;
+
+        if (get_shape(binop->left_expr) != SHAPE_AST_DECL)
+            continue;
+
+        ast_decl_t* decl = (ast_decl_t*)binop->left_expr;
 
 
-    // - mark its global decls as escaping
-    // - resolve decls in global.zeta on its own
+        // TODO: mark the declaration as escaping
+        // how is this done elsewhere?
 
 
 
 
-    // TODO: eval_unit
+    }
 
     // Initialize the global unit
-    //eval_unit(global_unit);
+    eval_unit(global_unit);
 
 
-
-
-    // TODO: this will be done in eval_unit?
-    // make the .parent of new units point to global.zeta
-
-
-
-
-
+    // TODO: store a pointer to the global unit in the VM object?
 
 
 
@@ -847,11 +858,8 @@ value_t eval_expr(
 Evaluate the source code in a given string
 This can also be used to evaluate files
 */
-value_t eval_string(const char* cstr, const char* src_name)
+value_t eval_unit(ast_fun_t* unit_fun)
 {
-    // Parse the input as a source code unit
-    ast_fun_t* unit_fun = parse_string(cstr, src_name);
-
     if (unit_fun == NULL)
     {
         printf("unit failed to parse\n");
@@ -883,17 +891,21 @@ value_t eval_string(const char* cstr, const char* src_name)
 }
 
 /**
+Evaluate the source code in a given string
+*/
+value_t eval_string(const char* cstr, const char* src_name)
+{
+    ast_fun_t* unit_fun = parse_string(cstr, src_name);
+    return eval_unit(unit_fun);
+}
+
+/**
 Evaluate a source file
 */
 value_t eval_file(const char* file_name)
 {
-    char* src_text = read_file(file_name);
-
-    value_t value = eval_string(src_text, file_name);
-
-    free(src_text);
-
-    return value;
+    ast_fun_t* unit_fun = parse_file(file_name);
+    return eval_unit(unit_fun);
 }
 
 void test_eval(char* cstr, value_t expected)
