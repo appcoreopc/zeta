@@ -53,13 +53,11 @@ void runtime_init()
 
         ast_decl_t* decl = (ast_decl_t*)binop->left_expr;
 
+        // Mark the declaration as escaping
+        decl->esc = true;
 
-        // TODO: mark the declaration as escaping
-        // how is this done elsewhere?
-
-
-
-
+        // Add the variable to the escaping variable set
+        array_append_obj(global_unit->esc_locals, (heapptr_t)decl);
     }
 
     // Initialize the global unit

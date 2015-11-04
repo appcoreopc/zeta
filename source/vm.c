@@ -1,4 +1,3 @@
-#include "vm.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +5,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <string.h>
+#include "util.h"
+#include "vm.h"
 
 //============================================================================
 // VM core
@@ -14,15 +15,15 @@
 /// Global VM instance
 vm_t vm;
 
-/// Boolean constant values
-const value_t VAL_FALSE = { 0, TAG_BOOL };
-const value_t VAL_TRUE = { 1, TAG_BOOL };
-
 /// Shape of array objects
 shapeidx_t SHAPE_ARRAY;
 
 /// Shape of string objects
 shapeidx_t SHAPE_STRING;
+
+/// Boolean constant values
+const value_t VAL_FALSE = { 0, TAG_BOOL };
+const value_t VAL_TRUE = { 1, TAG_BOOL };
 
 value_t value_from_heapptr(heapptr_t v, tag_t tag)
 {

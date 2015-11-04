@@ -5,9 +5,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/// Macro to get the size of a struct field
-#define FIELD_SIZEOF(STRUCT, FIELD) (sizeof(((STRUCT*)0)->FIELD))
-
 /// Heap object pointer
 typedef uint8_t* heapptr_t;
 
@@ -16,35 +13,6 @@ typedef uint8_t tag_t;
 
 /// Shape index (object header)
 typedef uint32_t shapeidx_t;
-
-/// Value type tags
-/// Note: the value false is (0, 0)
-#define TAG_BOOL        0
-#define TAG_INT64       1
-#define TAG_FLOAT64     2
-#define TAG_STRING      3
-#define TAG_ARRAY       4
-#define TAG_RAW_PTR     5
-#define TAG_OBJECT      6
-#define TAG_CLOS        7
-
-/// Initial VM heap size
-#define HEAP_SIZE (1 << 24)
-
-/// String table parameters
-#define STR_TBL_INIT_SIZE       16384
-#define STR_TBL_MAX_LOAD_NUM    3
-#define STR_TBL_MAX_LOAD_DEN    5
-
-/// Guaranteed minimum object capacity, in bytes
-/// This is the total object size
-#define OBJ_MIN_CAP 128
-
-/// Shape of array objects
-extern shapeidx_t SHAPE_ARRAY;
-
-/// Shape of string objects
-extern shapeidx_t SHAPE_STRING;
 
 // Forward declarations
 typedef struct array array_t;
@@ -95,10 +63,6 @@ typedef struct
     tag_t tag;
 
 } value_t;
-
-/// Boolean constant values
-const value_t VAL_FALSE;
-const value_t VAL_TRUE;
 
 /**
 Virtual machine
@@ -171,23 +135,6 @@ typedef struct array
 
 } array_t;
 
-/// Constant property value attribute
-#define ATTR_CST_VAL (1 << 0)
-
-/// Read-only property attribute
-#define ATTR_READ_ONLY (1 << 1)
-
-/// Object frozen attribute
-/// Frozen means shape cannot change, read-only and no new properties
-#define ATTR_OBJ_FROZEN (1 << 2)
-
-/// Fixed object layout
-/// Shape cannot change, no capacity or next pointer or type tags
-#define ATTR_FIXED_LAYOUT (1 << 3)
-
-/// Default property attributes
-#define ATTR_DEFAULT 0
-
 /*
 Shape node descriptor
 */
@@ -243,6 +190,59 @@ typedef struct object
     uint8_t payload[];
 
 } object_t;
+
+/// Value type tags
+/// Note: the value false is (0, 0)
+#define TAG_BOOL        0
+#define TAG_INT64       1
+#define TAG_FLOAT64     2
+#define TAG_STRING      3
+#define TAG_ARRAY       4
+#define TAG_RAW_PTR     5
+#define TAG_OBJECT      6
+#define TAG_CLOS        7
+
+/// Initial VM heap size
+#define HEAP_SIZE (1 << 24)
+
+/// String table parameters
+#define STR_TBL_INIT_SIZE       16384
+#define STR_TBL_MAX_LOAD_NUM    3
+#define STR_TBL_MAX_LOAD_DEN    5
+
+/// Guaranteed minimum object capacity, in bytes
+/// This is the total object size
+#define OBJ_MIN_CAP 128
+
+/// Constant property value attribute
+#define ATTR_CST_VAL (1 << 0)
+
+/// Read-only property attribute
+#define ATTR_READ_ONLY (1 << 1)
+
+/// Object frozen attribute
+/// Frozen means shape cannot change, read-only and no new properties
+#define ATTR_OBJ_FROZEN (1 << 2)
+
+/// Fixed object layout
+/// Shape cannot change, no capacity or next pointer or type tags
+#define ATTR_FIXED_LAYOUT (1 << 3)
+
+/// Default property attributes
+#define ATTR_DEFAULT 0
+
+/// Global VM instance
+extern vm_t vm;
+
+/// Shape of array objects
+extern shapeidx_t SHAPE_ARRAY;
+
+/// Shape of string objects
+extern shapeidx_t SHAPE_STRING;
+
+/// Boolean constant values
+const value_t VAL_FALSE;
+const value_t VAL_TRUE;
 
 value_t value_from_heapptr(heapptr_t v, tag_t tag);
 value_t value_from_obj(heapptr_t v);
