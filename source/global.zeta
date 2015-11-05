@@ -26,7 +26,7 @@ var import = fun ()
 }
 
 // TODO
-var assert = fun()
+var assert = fun(testVal, errorString)
 {
 }
 

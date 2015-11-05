@@ -92,6 +92,9 @@ typedef struct
     /// String shape
     shape_t* string_shape;
 
+    /// Global unit function
+    ast_fun_t* global_unit;
+
 } vm_t;
 
 /**

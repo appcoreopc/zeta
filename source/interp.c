@@ -63,14 +63,8 @@ void runtime_init()
     // Initialize the global unit
     eval_unit(global_unit);
 
-
-    // TODO: store a pointer to the global unit in the VM object?
-
-
-
-
-
-
+    // Store a pointer to the global unit in the VM object
+    vm.global_unit = global_unit;
 }
 
 cell_t* cell_alloc()
@@ -304,10 +298,10 @@ void var_res(heapptr_t expr, ast_fun_t* fun)
         // Find the declaration for this reference
         ast_decl_t* decl = find_decl(ref, fun);
 
-        // If this is a global variable
         if (decl == NULL)
         {
-            assert (false);
+            printf("unresolved reference to \"%s\"\n", string_cstr(ref->name));
+            exit(-1);
         }
 
         // Store the declaration on the reference
@@ -486,15 +480,7 @@ value_t eval_assign(
     if (shape == SHAPE_AST_REF)
     {
         ast_ref_t* ref = (ast_ref_t*)lhs_expr;
-
-        // If this is a global variable
-        if (ref->decl == NULL)
-        {
-            // TODO
-            assert (false);
-
-            return val;
-        }
+        assert (ref->decl != NULL);
 
         // If this is a variable from an outer function
         if (ref->decl->fun != clos->fun)
@@ -556,19 +542,18 @@ value_t eval_expr(
     if (shape == SHAPE_AST_REF)
     {
         ast_ref_t* ref = (ast_ref_t*)expr;
+        assert (ref->decl != NULL);
 
-        // If this is a global variable
-        if (ref->decl == NULL)
-        {
-            // TODO
-            assert (false);
-        }
+        //printf("evaluating ref to %s\n", string_cstr(ref->name));
 
         // If this is a variable from an outer function
         if (ref->decl->fun != clos->fun)
         {
+            //printf("ref from outer fun\n");
+
             assert (ref->idx < clos->fun->free_vars->len);
             cell_t* cell = clos->cells[ref->idx];
+            assert (cell != NULL);
 
             value_t value;
             value.word = cell->word;
@@ -865,13 +850,32 @@ value_t eval_unit(ast_fun_t* unit_fun)
     }
 
     // Resolve all variables in the unit
-    var_res_pass(unit_fun, NULL);
-
-    // Allocate space for the local variables
-    value_t* locals = alloca(sizeof(value_t) * unit_fun->local_decls->len);
+    var_res_pass(unit_fun, vm.global_unit);
 
     // Allocate a closure object for the unit
     clos_t* unit_clos = clos_alloc(unit_fun);
+
+
+    /*
+    // For each free variable of the unit function
+    for (size_t i = 0; i < unit_fun->free_vars->len; ++i)
+    {
+        ast_decl_t* decl = array_get(unit_fun->free_vars, i).word.decl;
+
+        uint32_t free_idx = array_indexof_ptr(clos->fun->free_vars, (heapptr_t)decl);
+        assert (free_idx < clos->fun->free_vars->len);
+        unit_clos->cells[i] = clos->cells[free_idx];
+    }
+    */
+
+
+
+    // TODO: use eval_call here
+
+
+
+    // Allocate space for the local variables
+    value_t* locals = alloca(sizeof(value_t) * unit_fun->local_decls->len);
 
     // Allocate closure cells for the escaping variables
     for (size_t i = 0; i < unit_fun->esc_locals->len; ++i)
@@ -1037,11 +1041,12 @@ void test_runtime()
 {
     printf("core runtime tests\n");
 
-    // TODO: test that print resolves, != false
-    // try assert (true);
-
-
-
+    /*
+    test_eval_true("print != false");
+    test_eval_true("println != false");
+    test_eval_true("assert != false");
+    test_eval_true("assert (true)   true");
+    */
 
 
 

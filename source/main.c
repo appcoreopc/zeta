@@ -67,6 +67,14 @@ int main(int argc, char** argv)
         run_repl();
     }
 
+    if (test)
+    {
+        printf(
+            "heap space allocated: %ld bytes\n",
+            vm.allocptr - vm.heapstart
+        );
+    }
+
     return 0;
 }
 
