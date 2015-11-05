@@ -26,7 +26,21 @@ var import = fun ()
 }
 
 // TODO
-var assert = fun(testVal, errorString)
+var assert = fun (testVal, errorString)
 {
+}
+
+/**
+This closure is a dummy function which serves to capture the globally
+exported variable. The interpreter pretends that all source code is a
+nested function of the function below.
+*/
+fun()
+{
+    print
+    println
+    readline
+    import
+    assert
 }
 

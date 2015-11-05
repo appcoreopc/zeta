@@ -168,6 +168,9 @@ void vm_init()
     vm.string_shape = shape_alloc_empty();
     SHAPE_STRING = vm.string_shape->idx;
     assert (SHAPE_ARRAY != SHAPE_STRING);
+
+    // The global scope is initialized in interp.c
+    vm.global_clos = NULL;
 }
 
 /**

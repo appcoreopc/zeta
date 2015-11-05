@@ -31,11 +31,11 @@ Initialize the runtime
 void runtime_init()
 {
     // Parse the global unit
-    ast_fun_t* global_unit = parse_file("global.zeta");
+    ast_fun_t* unit_fun = parse_file("global.zeta");
 
     // Get the list of global expressions
-    assert (get_shape(global_unit->body_expr) == SHAPE_AST_SEQ);
-    array_t* exprs = ((ast_seq_t*)global_unit->body_expr)->expr_list;
+    assert (get_shape(unit_fun->body_expr) == SHAPE_AST_SEQ);
+    array_t* exprs = ((ast_seq_t*)unit_fun->body_expr)->expr_list;
 
     // For each global expression
     for (size_t i = 0; i < exprs->len; ++i)
@@ -57,14 +57,19 @@ void runtime_init()
         decl->esc = true;
 
         // Add the variable to the escaping variable set
-        array_append_obj(global_unit->esc_locals, (heapptr_t)decl);
+        array_append_obj(unit_fun->esc_locals, (heapptr_t)decl);
     }
 
-    // Initialize the global unit
-    eval_unit(global_unit);
+    // Resolve all variables in the global unit
+    var_res_pass(unit_fun, NULL);
 
-    // Store a pointer to the global unit in the VM object
-    vm.global_unit = global_unit;
+    // Initialize the global unit
+    // This returns a closure which captures all global variables
+    value_t global_clos = eval_unit(unit_fun);
+    assert (global_clos.tag == TAG_CLOS);
+
+    // Store a pointer to the global unit closure in the VM object
+    vm.global_clos = global_clos.word.clos;
 }
 
 cell_t* cell_alloc()
@@ -443,7 +448,7 @@ bool eval_truth(value_t value)
 }
 
 /**
-Evaluate an assignment expression
+Evaluate an assignment of a value to an expression
 */
 value_t eval_assign(
     heapptr_t lhs_expr,
@@ -520,6 +525,66 @@ value_t eval_assign(
 
     printf("\n");
     exit(-1);
+}
+
+/**
+Evaluate a function call
+*/
+value_t eval_call(
+    clos_t* callee,
+    array_t* arg_exprs,
+    clos_t* caller,
+    value_t* caller_locals
+)
+{
+    ast_fun_t* fptr = callee->fun;
+    assert (fptr != NULL);
+
+    if (arg_exprs->len != fptr->param_decls->len)
+    {
+        printf("argument count mismatch\n");
+        exit(-1);
+    }
+
+    // Allocate space for the local variables
+    value_t* callee_locals = alloca(
+        sizeof(value_t) * fptr->local_decls->len
+    );
+
+    // Allocate mutable cells for the escaping variables
+    for (size_t i = 0; i < fptr->esc_locals->len; ++i)
+    {
+        ast_decl_t* decl = array_get(fptr->esc_locals, i).word.decl;
+        assert (decl->esc);
+        assert (decl->idx < fptr->local_decls->len);
+        callee_locals[decl->idx] = value_from_obj((heapptr_t)cell_alloc());
+    }
+
+    // Evaluate the argument values
+    for (size_t i = 0; i < arg_exprs->len; ++i)
+    {
+        //printf("evaluating arg %ld\n", i);
+
+        heapptr_t param_decl = array_get_ptr(fptr->param_decls, i);
+
+        // Evaluate the parameter value
+        value_t arg_val = eval_expr(
+            array_get_ptr(arg_exprs, i),
+            caller,
+            caller_locals
+        );
+
+        // Assign the value to the parameter
+        eval_assign(
+            param_decl,
+            arg_val,
+            callee,
+            callee_locals
+        );
+    }
+
+    // Evaluate the unit function body in the local frame
+    return eval_expr(fptr->body_expr, callee, callee_locals);
 }
 
 /**
@@ -631,6 +696,8 @@ value_t eval_expr(
     // Binary operator (e.g. a + b)
     if (shape == SHAPE_AST_BINOP)
     {
+        //printf("binop\n");
+
         ast_binop_t* binop = (ast_binop_t*)expr;
 
         // Assignment
@@ -706,7 +773,7 @@ value_t eval_expr(
         ast_seq_t* seqexpr = (ast_seq_t*)expr;
         array_t* expr_list = seqexpr->expr_list;
 
-        value_t value = VAL_FALSE;
+        value_t value = VAL_TRUE;
 
         for (size_t i = 0; i < expr_list->len; ++i)
         {
@@ -770,67 +837,22 @@ value_t eval_expr(
         //printf("evaluating call\n");
 
         ast_call_t* callexpr = (ast_call_t*)expr;
-        heapptr_t clos_expr = callexpr->fun_expr;
-        array_t* arg_exprs = callexpr->arg_exprs;
 
         // Evaluate the closure expression
-        value_t clos_val = eval_expr(clos_expr, clos, locals);
+        value_t callee_clos = eval_expr(callexpr->fun_expr, clos, locals);
 
-        if (clos_val.tag != TAG_CLOS)
+        if (callee_clos.tag != TAG_CLOS)
         {
             printf("expected closure in function call\n");
             exit(-1);
         }
 
-        clos_t* callee = clos_val.word.clos;
-        ast_fun_t* fptr = callee->fun;
-        assert (fptr != NULL);
-
-        if (arg_exprs->len != fptr->param_decls->len)
-        {
-            printf("argument count mismatch\n");
-            exit(-1);
-        }
-
-        // Allocate space for the local variables
-        value_t* callee_locals = alloca(
-            sizeof(value_t) * fptr->local_decls->len
+        return eval_call(
+            callee_clos.word.clos,
+            callexpr->arg_exprs,
+            clos,
+            locals
         );
-
-        // Allocate mutable cells for the escaping variables
-        for (size_t i = 0; i < fptr->esc_locals->len; ++i)
-        {
-            ast_decl_t* decl = array_get(fptr->esc_locals, i).word.decl;
-            assert (decl->esc);
-            assert (decl->idx < fptr->local_decls->len);
-            callee_locals[decl->idx] = value_from_obj((heapptr_t)cell_alloc());
-        }
-
-        // Evaluate the argument values
-        for (size_t i = 0; i < arg_exprs->len; ++i)
-        {
-            //printf("evaluating arg %ld\n", i);
-
-            heapptr_t param_decl = array_get_ptr(fptr->param_decls, i);
-
-            // Evaluate the parameter value
-            value_t arg_val = eval_expr(
-                array_get_ptr(arg_exprs, i),
-                clos,
-                locals
-            );
-
-            // Assign the value to the parameter
-            eval_assign(
-                param_decl,
-                arg_val,
-                callee,
-                callee_locals
-            );
-        }
-
-        // Evaluate the unit function body in the local frame
-        return eval_expr(fptr->body_expr, callee, callee_locals);
     }
 
     printf("eval error, unknown expression type, shapeidx=%d\n", get_shape(expr));
@@ -850,46 +872,23 @@ value_t eval_unit(ast_fun_t* unit_fun)
     }
 
     // Resolve all variables in the unit
-    var_res_pass(unit_fun, vm.global_unit);
+    var_res_pass(unit_fun, vm.global_clos? vm.global_clos->fun:NULL);
 
-    // Allocate a closure object for the unit
-    clos_t* unit_clos = clos_alloc(unit_fun);
+    // Create the unit closure by evaluating the unit function expression
+    // This will resolve the free variables for this unit
+    value_t unit_clos = eval_expr(
+        (heapptr_t)unit_fun,
+        vm.global_clos,
+        NULL
+    );
 
-
-    /*
-    // For each free variable of the unit function
-    for (size_t i = 0; i < unit_fun->free_vars->len; ++i)
-    {
-        ast_decl_t* decl = array_get(unit_fun->free_vars, i).word.decl;
-
-        uint32_t free_idx = array_indexof_ptr(clos->fun->free_vars, (heapptr_t)decl);
-        assert (free_idx < clos->fun->free_vars->len);
-        unit_clos->cells[i] = clos->cells[free_idx];
-    }
-    */
-
-
-
-    // TODO: use eval_call here
-
-
-
-    // Allocate space for the local variables
-    value_t* locals = alloca(sizeof(value_t) * unit_fun->local_decls->len);
-
-    // Allocate closure cells for the escaping variables
-    for (size_t i = 0; i < unit_fun->esc_locals->len; ++i)
-    {
-        ast_decl_t* decl = array_get(unit_fun->esc_locals, i).word.decl;
-        assert (decl->esc);
-        assert (decl->idx < unit_fun->local_decls->len);
-        locals[decl->idx] = value_from_obj((heapptr_t)cell_alloc());
-    }
-
-    assert (unit_clos->fun == unit_fun);
-
-    // Evaluate the unit function body in the local frame
-    return eval_expr(unit_fun->body_expr, unit_clos, locals);
+    // Call the unit function with no arguments
+    return eval_call(
+        unit_clos.word.clos,
+        array_alloc(0),
+        NULL,
+        NULL
+    );
 }
 
 /**
@@ -951,7 +950,7 @@ void test_interp()
     printf("core interpreter tests\n");
 
     // Empty unit
-    test_eval_false("");
+    test_eval_true("");
 
     // Literals and constants
     test_eval_int("0", 0);
@@ -989,7 +988,7 @@ void test_interp()
     test_eval_int("[7+3][0]", 10);
 
     // Sequence expression
-    test_eval_false("{}");
+    test_eval_true("{}");
     test_eval_int("{ 2 3 }", 3);
     test_eval_int("{ 2 3+7 }", 10);
     test_eval_int("3 7", 7);
@@ -1041,12 +1040,11 @@ void test_runtime()
 {
     printf("core runtime tests\n");
 
-    /*
     test_eval_true("print != false");
     test_eval_true("println != false");
     test_eval_true("assert != false");
-    test_eval_true("assert (true)   true");
-    */
+    test_eval_true("assert (true, '')");
+    
 
 
 
