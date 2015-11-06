@@ -26,8 +26,13 @@ var import = fun ()
 }
 
 // TODO
-var assert = fun (testVal, errorString)
+var assert = fun (testVal, errorStr)
 {
+    if testVal != true then
+    {
+        //print(errorStr)
+        //exit(-1)
+    }
 }
 
 /**

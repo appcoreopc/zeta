@@ -12,6 +12,7 @@
 
 /// Shape indices for AST nodes
 /// These are initialized in init_parser(), see parser.c
+shapeidx_t SHAPE_AST_ERROR;
 shapeidx_t SHAPE_AST_CONST;
 shapeidx_t SHAPE_AST_REF;
 shapeidx_t SHAPE_AST_DECL;
@@ -32,6 +33,7 @@ void parser_init()
     // - assert that size according to shape matches sizeof(struct)
     //
     // For now, just dummy shapes
+    SHAPE_AST_ERROR = shape_alloc_empty()->idx;
     SHAPE_AST_CONST = shape_alloc_empty()->idx;
     SHAPE_AST_REF = shape_alloc_empty()->idx;
     SHAPE_AST_DECL = shape_alloc_empty()->idx;
@@ -185,6 +187,29 @@ void input_eat_ws(input_t* input)
     }
 }
 
+
+/// Allocate a parse error node
+heapptr_t ast_error_alloc(input_t* input, const char* error_str)
+{
+    ast_error_t* node = (ast_error_t*)vm_alloc(
+        sizeof(ast_error_t),
+        SHAPE_AST_ERROR
+    );
+
+    node->src_pos = input->pos;
+    node->error_str = vm_get_cstr(error_str);
+
+    assert (ast_error((heapptr_t)node));
+
+    return (heapptr_t)node;
+}
+
+bool ast_error(heapptr_t node)
+{
+    assert (node != NULL);
+    return get_shape(node) == SHAPE_AST_ERROR;
+}
+
 /// Allocate an integer node
 heapptr_t ast_const_alloc(value_t val)
 {
@@ -334,7 +359,7 @@ heapptr_t parse_ident(input_t* input)
     if (firstCh != '_' &&
         firstCh != '$' &&
         !isalpha(firstCh))
-        return NULL;
+        return ast_error_alloc(input, "invalid identifier start");;
 
     for (;;)
     {
@@ -349,7 +374,7 @@ heapptr_t parse_ident(input_t* input)
     }
 
     if (len == 0)
-        return NULL;
+        return ast_error_alloc(input, "invalid identifier");
 
     string_t* str = string_alloc(len);
 
@@ -431,8 +456,8 @@ heapptr_t parse_string_lit(input_t* input, char endCh)
                 case '0': ch = '\0'; break;
 
                 default:
-                    free(buf);
-                    return NULL;
+                free(buf);
+                return ast_error_alloc(input, "invalid escape sequence");
             }
         }
 
@@ -469,16 +494,15 @@ heapptr_t parse_if_expr(input_t* input)
     input_eat_ws(input);
     if (!input_match_str(input, "then"))
     {
-        input->error_str = "expected 'then' keyword";
-        return NULL;
+        return ast_error_alloc(input, "expected 'then' keyword");
     }
 
     heapptr_t then_expr = parse_expr(input);
 
     // There must be a then clause
-    if (then_expr == NULL)
+    if (ast_error(then_expr))
     {
-        return NULL;
+        return then_expr;
     }
 
     heapptr_t else_expr;
@@ -500,7 +524,7 @@ heapptr_t parse_if_expr(input_t* input)
 /**
 Parse a list of expressions
 */
-array_t* parse_expr_list(input_t* input, char endCh, bool needSep)
+heapptr_t parse_expr_list(input_t* input, char endCh, bool needSep)
 {
     // Allocate an array with an initial capacity
     array_t* arr = array_alloc(4);
@@ -521,9 +545,9 @@ array_t* parse_expr_list(input_t* input, char endCh, bool needSep)
         heapptr_t expr = parse_expr(input);
 
         // The expression must not fail to parse
-        if (expr == NULL)
+        if (ast_error(expr))
         {
-            return NULL;
+            return expr;
         }
 
         // Write the expression to the array
@@ -541,12 +565,11 @@ array_t* parse_expr_list(input_t* input, char endCh, bool needSep)
         // If this is not the first element, there must be a separator
         if (needSep && !input_match_ch(input, ','))
         {
-            input->error_str = "expected comma separator in list";
-            return NULL;
+            return ast_error_alloc(input, "expected comma separator in list");
         }
     }
 
-    return arr;
+    return (heapptr_t)arr;
 }
 
 /**
@@ -558,8 +581,7 @@ heapptr_t parse_fun_expr(input_t* input)
     input_eat_ws(input);
     if (!input_match_ch(input, '('))
     {
-        input->error_str = "expected parameter list";
-        return NULL;
+        return ast_error_alloc(input, "expected parameter list");
     }
 
     // Allocate an array for the parameter declarations
@@ -578,8 +600,8 @@ heapptr_t parse_fun_expr(input_t* input)
         // Parse an identifier
         heapptr_t ident = parse_ident(input);
 
-        if (ident == NULL)
-            return NULL;
+        if (ast_error(ident))
+            return ident;
 
         heapptr_t decl = ast_decl_alloc(ident, false);
 
@@ -596,17 +618,16 @@ heapptr_t parse_fun_expr(input_t* input)
         // If this is not the first element, there must be a separator
         if (!input_match_ch(input, ','))
         {
-            input->error_str = "expected comma separator in parameter list";
-            return NULL;
+            return ast_error_alloc(input, "expected comma separator in parameter list");
         }
     }
 
     // Parse the function body
     heapptr_t body_expr = parse_expr(input);
 
-    if (body_expr == NULL)
+    if (ast_error(body_expr))
     {
-        return NULL;
+        return body_expr;
     }
 
     return (heapptr_t)ast_fun_alloc(param_decls, body_expr);
@@ -770,10 +791,9 @@ heapptr_t parse_var_decl(input_t* input)
 
     heapptr_t ident = parse_ident(input);
 
-    if (ident == NULL)
+    if (ast_error(ident))
     {
-        input->error_str = "expected identifier in variable expression";
-        return NULL;
+        return ast_error_alloc(input, "expected identifier in variable expression");
     }
 
     return ast_decl_alloc(ident, false);
@@ -789,10 +809,9 @@ heapptr_t parse_cst_decl(input_t* input)
 
     heapptr_t ident = parse_ident(input);
 
-    if (ident == NULL)
+    if (ast_error(ident))
     {
-        input->error_str = "expected identifier in variable expression";
-        return NULL;
+        return ast_error_alloc(input, "expected identifier in variable expression");
     }
 
     input_eat_ws(input);
@@ -800,15 +819,14 @@ heapptr_t parse_cst_decl(input_t* input)
     // A value must be assigned to the constant declared
     if (!input_match_str(input, "="))
     {
-        input->error_str = "expected value assignment in let declaration";
-        return NULL;
+        return ast_error_alloc(input, "expected value assignment in let declaration");
     }
 
     heapptr_t val = parse_expr(input);
 
-    if (!val)
+    if (ast_error(val))
     {
-        return NULL;
+        return val;
     }
 
     // Create and return an assignment expression
@@ -855,15 +873,14 @@ heapptr_t parse_atom(input_t* input)
     if (input_match_ch(input, '('))
     {
         heapptr_t expr = parse_expr(input);
-        if (expr == NULL)
+        if (ast_error(expr))
         {
-            input->error_str = "expected expression after '('\n";
-            return NULL;
+            return ast_error_alloc(input, "expected expression after '('");
         }
 
         if (!input_match_ch(input, ')'))
         {
-            return NULL;
+            return ast_error_alloc(input, "expected closing parenthesis");
         }
 
         return expr;
@@ -872,7 +889,14 @@ heapptr_t parse_atom(input_t* input)
     // Sequence/block expression (i.e { a; b; c }
     if (input_match_ch(input, '{'))
     {
-        return ast_seq_alloc(parse_expr_list(input, '}', false));
+        heapptr_t expr_list = parse_expr_list(input, '}', false);
+
+        if (ast_error(expr_list))
+        {
+            return expr_list;
+        }
+
+        return ast_seq_alloc((array_t*)expr_list);
     }
 
     // Try matching a right-associative (prefix) unary operators
@@ -882,10 +906,9 @@ heapptr_t parse_atom(input_t* input)
     if (op)
     {
         heapptr_t expr = parse_atom(input);
-        if (expr == NULL)
+        if (ast_error(expr))
         {
-            printf("expected atomic expression after prefix unary op\n");
-            return NULL;
+            return expr;
         }
 
         return (heapptr_t)ast_unop_alloc(op, expr);
@@ -926,7 +949,7 @@ heapptr_t parse_atom(input_t* input)
     }
 
     // Parsing failed
-    return NULL;
+    return ast_error_alloc(input, "invalid expression");
 }
 
 /**
@@ -950,9 +973,9 @@ heapptr_t parse_expr_prec(input_t* input, int minPrec)
     // Parse the first atom
     heapptr_t lhs_expr = parse_atom(input);
 
-    if (lhs_expr == NULL)
+    if (ast_error(lhs_expr))
     {
-        return NULL;
+        return lhs_expr;
     }
 
     for (;;)
@@ -991,9 +1014,12 @@ heapptr_t parse_expr_prec(input_t* input, int minPrec)
         if (op == &OP_CALL)
         {
             // Parse the argument list and create the call expression
-            array_t* arg_exprs = parse_expr_list(input, ')', true);
+            heapptr_t arg_exprs = parse_expr_list(input, ')', true);
 
-            lhs_expr = ast_call_alloc(lhs_expr, arg_exprs);
+            if (ast_error(arg_exprs))
+                return arg_exprs;
+
+            lhs_expr = ast_call_alloc(lhs_expr, (array_t*)arg_exprs);
         }
 
         // If this is a member expression
@@ -1002,10 +1028,9 @@ heapptr_t parse_expr_prec(input_t* input, int minPrec)
             // Parse the identifier string
             heapptr_t ident = parse_ident(input);
 
-            if (ident == NULL)
+            if (ast_error(ident))
             {
-                input->error_str = "expected identifier in member expression";
-                return NULL;
+                return ast_error_alloc(input, "expected identifier in member expression");
             }
 
             // Produce an indexing expression
@@ -1023,8 +1048,8 @@ heapptr_t parse_expr_prec(input_t* input, int minPrec)
             heapptr_t rhs_expr = parse_expr_prec(input, nextMinPrec);
 
             // The rhs expression must parse correctly
-            if (rhs_expr == NULL)
-                return NULL;
+            if (ast_error(rhs_expr))
+                return rhs_expr;
 
             // Create a new parent node for the expressions
             lhs_expr = ast_binop_alloc(
@@ -1035,7 +1060,7 @@ heapptr_t parse_expr_prec(input_t* input, int minPrec)
 
             // If specified, match the operator closing string
             if (op->close_str && !input_match_str(input, op->close_str))
-                return NULL;
+                return ast_error_alloc(input, "expected operator closing");
         }
 
         // If this is a unary operator
@@ -1043,7 +1068,7 @@ heapptr_t parse_expr_prec(input_t* input, int minPrec)
         {
             if (op->assoc != 'l')
             {
-                return NULL;
+                return ast_error_alloc(input, "invalid operator");
             }
 
             printf("postfix unary operator\n");
@@ -1074,7 +1099,7 @@ heapptr_t parse_expr(input_t* input)
 /**
 Parse a source unit from an input object
 */
-ast_fun_t* parse_unit(input_t* input)
+heapptr_t parse_unit(input_t* input)
 {
     // Allocate an array with an initial capacity
     array_t* arr = array_alloc(32);
@@ -1090,9 +1115,9 @@ ast_fun_t* parse_unit(input_t* input)
         // Parse one expression
         heapptr_t expr = parse_expr(input);
 
-        if (expr == NULL)
+        if (ast_error(expr))
         {
-            return NULL;
+            return expr;
         }
 
         // Write the expression to the array
@@ -1105,13 +1130,13 @@ ast_fun_t* parse_unit(input_t* input)
     // Create an empty array for the parameter list
     array_t* param_list = array_alloc(0);
 
-    return (ast_fun_t*)ast_fun_alloc(param_list, seq_expr);
+    return ast_fun_alloc(param_list, seq_expr);
 }
 
 /**
 Parse a source string as a unit
 */
-ast_fun_t* parse_string(const char* cstr, const char* src_name)
+heapptr_t parse_string(const char* cstr, const char* src_name)
 {
     input_t input = input_from_string(
         vm_get_cstr(cstr),
@@ -1124,25 +1149,47 @@ ast_fun_t* parse_string(const char* cstr, const char* src_name)
 /**
 Parse a source file
 */
-ast_fun_t* parse_file(const char* file_name)
+heapptr_t parse_file(const char* file_name)
 {
     char* src_text = read_file(file_name);
 
-    ast_fun_t* unit_fun = parse_string(src_text, file_name);
+    heapptr_t unit_fun = parse_string(src_text, file_name);
     
     free(src_text);
 
     return unit_fun;
 }
 
+/**
+Check that the parsing of unit was successful
+*/
+ast_fun_t* parse_check_error(heapptr_t node)
+{
+    if (ast_error(node))
+    {
+        ast_error_t* error = (ast_error_t*)node;
+
+        //printf("parsing failed \"%s\"\n", string_cstr(error->src_name));
+
+        char buf[64];
+        printf("parsing failed %s\n", srcpos_to_str(error->src_pos, buf));
+
+        exit(-1);
+    }
+
+    assert (get_shape(node) == SHAPE_AST_FUN);
+    return (ast_fun_t*)node;
+}
+
 /// Test that the parsing of a source unit succeeds
 void test_parse(char* cstr)
 {
-    //printf("%s\n", cstr);
+    printf("%s\n", cstr);
 
-    ast_fun_t* unit = parse_string(cstr, "parser_test");
+    heapptr_t unit = parse_string(cstr, "parser_test");
+    assert (unit != NULL);
 
-    if (!unit)
+    if (ast_error(unit))
     {
         printf("failed to parse:\n\"%s\"\n", cstr);
         exit(-1);
@@ -1152,11 +1199,12 @@ void test_parse(char* cstr)
 /// Test that the parsing of a source unit fails
 void test_parse_fail(char* cstr)
 {
-    //printf("%s\n", cstr);
+    printf("%s\n", cstr);
 
-    ast_fun_t* unit = parse_string(cstr, "parser_fail_test");
+    heapptr_t unit = parse_string(cstr, "parser_fail_test");
+    assert (unit != NULL);
 
-    if (unit)
+    if (!ast_error(unit))
     {
         printf("parsing did not fail for:\n\"%s\"\n", cstr);
         exit(-1);

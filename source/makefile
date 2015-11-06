@@ -22,6 +22,14 @@ GCC_GE_4_8 := $(shell [ $(GCC_MAJ) -ge 5 -o \( $(GCC_MAJ) -eq 4 -a $(GCC_MIN) -g
 # $(error GCC version required is 4.8+ (your version $(GCC_VER)))
 # endif
 
+C_SRCS=     \
+util.c      \
+vm.c        \
+parser.c    \
+interp.c    \
+api_core.c  \
+main.c      \
+
 all: debug
 
 test_gdb: debug
@@ -34,10 +42,10 @@ test: debug
 	./zeta --test
 
 debug: *.c
-	$(CC) $(CFLAGS) $(CFLAGS_debug) -o zeta util.c vm.c parser.c interp.c main.c
+	$(CC) $(CFLAGS) $(CFLAGS_debug) -o zeta $(C_SRCS)
 
 release: *.c
-	$(CC) $(CFLAGS) $(CFLAGS_release) -o zeta util.c vm.c parser.c interp.c main.c
+	$(CC) $(CFLAGS) $(CFLAGS_release) -o zeta $(C_SRCS)
 
 clean:
 	rm -f *.o

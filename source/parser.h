@@ -16,6 +16,7 @@ language.
 
 /// Shape indices for AST nodes
 /// These are initialized in init_parser(), see parser.c
+extern shapeidx_t SHAPE_AST_ERROR;
 extern shapeidx_t SHAPE_AST_CONST;
 extern shapeidx_t SHAPE_AST_REF;
 extern shapeidx_t SHAPE_AST_DECL;
@@ -54,10 +55,22 @@ typedef struct
     /// Current source position
     srcpos_t pos;
 
-    /// Error text, if a parse error was encountered
-    const char* error_str;
-
 } input_t;
+
+/**
+Parse error
+*/
+typedef struct
+{
+    shapeidx_t shape;
+
+    // Error description
+    string_t* error_str;
+
+    /// Source position
+    srcpos_t src_pos;
+
+} ast_error_t;
 
 /**
 Constant value AST node
@@ -267,9 +280,20 @@ char* srcpos_to_str(srcpos_t pos, char* buf);
 
 void parser_init();
 
+bool ast_error(heapptr_t node);
+
+heapptr_t ast_const_alloc(value_t val);
+heapptr_t ast_decl_alloc(heapptr_t name_str, bool cst);
+heapptr_t ast_binop_alloc(
+    const opinfo_t* op,
+    heapptr_t left_expr,
+    heapptr_t right_expr
+);
+
 heapptr_t parse_expr(input_t* input);
-ast_fun_t* parse_string(const char* cstr, const char* src_name);
-ast_fun_t* parse_file(const char* file_name);
+heapptr_t parse_string(const char* cstr, const char* src_name);
+heapptr_t parse_file(const char* file_name);
+ast_fun_t* parse_check_error(heapptr_t node);
 
 void test_parser();
 

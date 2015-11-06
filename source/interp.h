@@ -14,10 +14,11 @@ semantics supported are limited.
 #include "vm.h"
 #include "parser.h"
 
-/// Shape indices for mutable cells and closures
+/// Shape indices for mutable cells, closures and host function wrappers
 /// These are initialized in init_interp(), see interp.c
 extern shapeidx_t SHAPE_CELL;
 extern shapeidx_t SHAPE_CLOS;
+extern shapeidx_t SHAPE_HOSTFN;
 
 /**
 Mutable cell object
@@ -51,9 +52,25 @@ typedef struct clos
 
 } clos_t;
 
-cell_t* cell_alloc();
+/**
+Host function wrapper
+*/
+typedef struct hostfn
+{
+    /// C function pointer
+    void* fptr;
 
+    /// Function name
+    string_t* name;
+
+    /// Type signature string
+    string_t* sig_str;
+
+} hostfn_t;
+
+cell_t* cell_alloc();
 clos_t* clos_alloc(ast_fun_t* fun);
+hostfn_t* hostfn_alloc(void* fptr, const char* name, const char* sig_str);
 
 void interp_init();
 void runtime_init();

@@ -523,6 +523,14 @@ value_t array_get(array_t* array, uint32_t idx)
     return array->tbl->elems[idx];
 }
 
+void array_prepend_obj(array_t* array, heapptr_t ptr)
+{
+    for (size_t i = array->len; i > 0; --i)
+        array_set(array, i, array_get(array, i-1));
+
+    array_set_obj(array, 0, ptr);
+}
+
 void array_append_obj(array_t* array, heapptr_t ptr)
 {
     array_set_obj(array, array->len, ptr);

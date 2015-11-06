@@ -23,6 +23,7 @@ typedef struct ast_decl ast_decl_t;
 typedef struct ast_fun ast_fun_t;
 typedef struct cell cell_t;
 typedef struct clos clos_t;
+typedef struct hostfn hostfn_t;
 
 /**
 Word value type
@@ -47,6 +48,7 @@ typedef union
 
     cell_t* cell;
     clos_t* clos;
+    hostfn_t* hostfn;
 
     shapeidx_t shapeidx;
     tag_t tag;
@@ -267,6 +269,7 @@ array_t* array_alloc(uint32_t cap);
 void array_set(array_t* array, uint32_t idx, value_t val);
 void array_set_obj(array_t* array, uint32_t idx, heapptr_t val);
 value_t array_get(array_t* array, uint32_t idx);
+void array_prepend_obj(array_t* array, heapptr_t ptr);
 void array_append_obj(array_t* array, heapptr_t ptr);
 heapptr_t array_get_ptr(array_t* array, uint32_t idx);
 uint32_t array_indexof_ptr(array_t* array, heapptr_t ptr);
