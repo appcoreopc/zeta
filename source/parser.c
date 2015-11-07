@@ -1360,5 +1360,8 @@ void test_parser()
     test_parse_fail("{ a, }");
     test_parse_fail("{ a, b }");
     test_parse_fail("fun foo () { a, }");
+
+    parse_check_error(parse_file("global.zeta"));
+    parse_check_error(parse_file("parser.zeta"));
 }
 

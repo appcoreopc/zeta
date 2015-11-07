@@ -1058,10 +1058,9 @@ void test_runtime()
     test_eval_true("print != false");
     test_eval_true("println != false");
     test_eval_true("assert != false");
+    test_eval_true("assert (true, '')   true");
 
-    // FIXME
-    //test_eval_true("assert (true, '')");
-    
+
 
 
 

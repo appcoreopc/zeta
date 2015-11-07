@@ -68,7 +68,7 @@ void value_print(value_t value)
     switch (value.tag)
     {
         case TAG_BOOL:
-        if (value.word.int8 != 1)
+        if (value.word.int8 != 0)
             printf("true");
         else
             printf("false");
