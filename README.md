@@ -77,6 +77,8 @@ Zeta takes inspiration from JavaScript, but notable differences include:
 
 - Global variables are not shared among different source files
 
+- Global variables must be declared before they are assigned to
+
 - The `eval` function cannot access local variables
 
 - A distinction between `print` and `println` functions

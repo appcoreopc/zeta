@@ -798,15 +798,29 @@ value_t eval_expr(
     // Object literal expression
     if (shape == SHAPE_AST_OBJ)
     {
+        printf("obj literal expr\n");
+
+        ast_obj_t* obj_expr = (ast_obj_t*)expr;
+
         object_t* obj = object_alloc(OBJ_MIN_CAP);
 
+        // TODO: set prototype
+        // Do this in object_alloc?
 
+        for (size_t i = 0; i < obj_expr->name_strs->len; ++i)
+        {
+            string_t* prop_name = array_get(obj_expr->name_strs, i).word.string;
+            heapptr_t val_expr = array_get(obj_expr->val_exprs, i).word.heapptr;
 
+            value_t value = eval_expr(val_expr, clos, locals);
 
-
-
-
-
+            object_set_prop(
+                obj,
+                prop_name,
+                value,
+                ATTR_DEFAULT
+            );
+        }
 
         return value_from_obj((heapptr_t)obj);
     }
@@ -1163,6 +1177,13 @@ void test_interp()
 
     // Captured function parameter
     test_eval_int("let f = fun (n) { fun () n }      let g = f(88)   g()", 88);
+
+    // Objects
+    eval_string("let o = :{}", "test");
+    eval_string("let o = :{x:1}", "test");
+    eval_string("let o = :{x:1,y:2}", "test");
+
+
 
     //eval_file("global.zeta");
 }

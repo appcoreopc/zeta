@@ -398,6 +398,9 @@ heapptr_t ast_obj_alloc(
     array_t* val_exprs
 )
 {
+    //printf("%p\n", name_strs);
+    //printf("%p\n", val_exprs);
+
     ast_obj_t* node = (ast_obj_t*)vm_alloc(
         sizeof(ast_obj_t),
         SHAPE_AST_OBJ
@@ -702,7 +705,6 @@ fun (x,y,z) <body_expr>
 heapptr_t parse_obj_expr(input_t* input)
 {
     array_t* name_strs = array_alloc(4);
-
     array_t* val_exprs = array_alloc(4);
 
     // Until the end of the list
@@ -756,7 +758,7 @@ heapptr_t parse_obj_expr(input_t* input)
         }
     }
 
-    return (heapptr_t)ast_obj_alloc(NULL, name_strs, val_exprs);
+    return ast_obj_alloc(NULL, name_strs, val_exprs);
 }
 
 /**

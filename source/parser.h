@@ -244,14 +244,14 @@ typedef struct
 {
     shapeidx_t shape;
 
+    /// Prototype object expression (may be null)
+    heapptr_t proto_expr;
+
     /// Property name strings
     array_t* name_strs;
 
     /// Property value expressions
     array_t* val_exprs;
-
-    /// Prototype object expression (may be null)
-    heapptr_t proto_expr;
 
 } ast_obj_t;
 

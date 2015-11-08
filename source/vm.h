@@ -293,6 +293,12 @@ shape_t* shape_def_prop(
 );
 
 object_t* object_alloc(uint32_t cap);
+bool object_set_prop(
+    object_t* obj,
+    string_t* prop_name,
+    value_t value,
+    uint8_t def_attrs
+);
 
 void test_vm();
 
