@@ -1,10 +1,10 @@
 let bottles = fun (n)
 {
-    if (n == 0) then
+    if n == 0 then
     {
         print("No more bottles")
     }
-    else if (n == 1) then
+    else if n == 1 then
     {
         print("One bottle")
     }
