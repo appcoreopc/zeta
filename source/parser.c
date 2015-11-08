@@ -717,24 +717,34 @@ heapptr_t parse_obj_expr(input_t* input)
             break;
         }
 
+        // Parse the property name
+        heapptr_t ident = parse_ident(input);
+
+        if (ast_error(ident))
+        {
+            return ident;
+        }
+
+        input_eat_ws(input);
+        if (!input_match_ch(input, ':'))
+        {
+            return ast_error_alloc(input, "expected : separator");
+        }
+
         // Parse an expression
         heapptr_t expr = parse_expr(input);
 
-        // The expression must not fail to parse
         if (ast_error(expr))
         {
             return expr;
         }
 
-        /*
-        // Write the expression to the array
-        array_set_obj(arr, arr->len, expr);
-
-        // Read whitespace
-        input_eat_ws(input);
+        array_set(name_strs, name_strs->len, value_from_heapptr(ident, TAG_STRING));
+        array_set_obj(val_exprs, val_exprs->len, expr);
 
         // If this is the end of the list
-        if (input_match_ch(input, endCh))
+        input_eat_ws(input);
+        if (input_match_ch(input, '}'))
         {
             break;
         }
@@ -744,7 +754,6 @@ heapptr_t parse_obj_expr(input_t* input)
         {
             return ast_error_alloc(input, "expected comma separator in list");
         }
-        */
     }
 
     return (heapptr_t)ast_obj_alloc(NULL, name_strs, val_exprs);
@@ -1251,7 +1260,11 @@ ast_fun_t* parse_check_error(heapptr_t node)
         //printf("parsing failed \"%s\"\n", string_cstr(error->src_name));
 
         char buf[64];
-        printf("parsing failed %s\n", srcpos_to_str(error->src_pos, buf));
+        printf(
+            "parsing failed %s - %s\n",
+            srcpos_to_str(error->src_pos, buf),
+            string_cstr(error->error_str)
+        );
 
         exit(-1);
     }
@@ -1270,8 +1283,7 @@ void test_parse(char* cstr)
 
     if (ast_error(unit))
     {
-        printf("failed to parse:\n\"%s\"\n", cstr);
-        exit(-1);
+        parse_check_error(unit);
     }
 }
 
@@ -1329,6 +1341,11 @@ void test_parser()
 
     // Object literals
     test_parse(":{}");
+    test_parse(":{x:3}");
+    test_parse(":{x:3,y:2}");
+    test_parse(":{x:3,y:2+z}");
+    test_parse(":{x:3,y:2+z,}");
+    test_parse_fail(":{,}");
 
     // Comments
     test_parse("1 // comment");
