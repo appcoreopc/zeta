@@ -798,7 +798,7 @@ value_t eval_expr(
     // Object literal expression
     if (shape == SHAPE_AST_OBJ)
     {
-        printf("obj literal expr\n");
+        //printf("obj literal expr\n");
 
         ast_obj_t* obj_expr = (ast_obj_t*)expr;
 
@@ -849,6 +849,23 @@ value_t eval_expr(
         value_t v1 = eval_expr(binop->right_expr, clos, locals);
         int64_t i0 = v0.word.int64;
         int64_t i1 = v1.word.int64;
+
+        if (binop->op == &OP_MEMBER)
+        {
+            if (v0.tag != TAG_OBJECT)
+            {
+                printf("non-object base in property read\n");
+                exit(-1);
+            }
+
+            if (v1.tag != TAG_STRING)
+            {
+                printf("non-string property name in property read\n");
+                exit(-1);
+            }
+
+            return object_get_prop(v0.word.object, v1.word.string);
+        }
 
         if (binop->op == &OP_INDEX)
             return array_get((array_t*)v0.word.heapptr, i1);
@@ -1182,10 +1199,13 @@ void test_interp()
     eval_string("let o = :{}", "test");
     eval_string("let o = :{x:1}", "test");
     eval_string("let o = :{x:1,y:2}", "test");
+    test_eval_int("let o = :{x:1,y:2}     o.x", 1);
+    test_eval_int("let o = :{x:1,y:2}     o.y", 2);
 
 
 
-    //eval_file("global.zeta");
+
+
 }
 
 void test_runtime()
@@ -1197,6 +1217,7 @@ void test_runtime()
     test_eval_true("assert != false");
     test_eval_true("assert (true, '')   true");
 
+    eval_file("tests/list-sum.zeta");
 
 
 

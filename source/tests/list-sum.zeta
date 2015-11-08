@@ -1,0 +1,22 @@
+let makeList = fun (len)
+{
+    if len == 0 then
+        :{ next: false, val: 0 }
+    else
+        :{ next: makeList(len-1), val: len }
+}
+
+let sumList = fun (lst)
+{
+    if lst.next == false then
+        list.val
+    else
+        list.val + sumList(lst.next)
+}
+
+let list = makeList(100)
+
+let sum = sumList(list)
+
+assert (sum == 10100, "incorrect sum")
+

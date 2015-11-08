@@ -73,7 +73,7 @@ char* read_file(const char* file_name)
     size_t len = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    printf("%ld bytes\n", len);
+    //printf("%ld bytes\n", len);
 
     char* buf = malloc(len+1);
 

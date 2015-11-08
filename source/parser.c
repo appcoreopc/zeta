@@ -1466,5 +1466,6 @@ void test_parser()
     parse_check_error(parse_file("parser.zeta"));
 
     parse_check_error(parse_file("tests/beer.zeta"));
+    parse_check_error(parse_file("tests/list-sum.zeta"));
 }
 

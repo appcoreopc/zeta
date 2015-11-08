@@ -299,6 +299,10 @@ bool object_set_prop(
     value_t value,
     uint8_t def_attrs
 );
+value_t object_get_prop(
+    object_t* obj,
+    string_t* prop_name
+);
 
 void test_vm();
 

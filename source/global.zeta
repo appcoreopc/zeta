@@ -7,10 +7,10 @@ var print = fun (val)
 {
     if $is_int64(val) then
         $print_int64(val)
-    else
+    else if $is_string(val) then
         $print_string(val)
-
-    true
+    else
+        assert (false, "unknown value type in print()")
 }
 
 var println = fun (val)
@@ -19,13 +19,23 @@ var println = fun (val)
     print('\n')
 }
 
-// TODO
-var readline = fun ()
+var readLine = fun ()
+{
+    //$read_line()
+}
+
+var readFile = fun (fileName)
+{
+    assert ($is_string(fileName), "fileName must be a string")
+
+    //$read_file(fileName)
+}
+
+var import = fun ()
 {
 }
 
-// TODO
-var import = fun ()
+var export = fun (name, value)
 {
 }
 
@@ -33,7 +43,8 @@ var assert = fun (testVal, errorStr)
 {
     if testVal != true then
     {
-        print(errorStr)
+        print("assertion failed - ")
+        println(errorStr)
         $exit(-1)
     }
 }
@@ -47,8 +58,10 @@ fun()
 {
     print
     println
-    readline
+    readLine
+    readFile
     import
+    export
     assert
 }
 

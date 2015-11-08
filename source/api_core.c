@@ -25,6 +25,11 @@ bool is_int64(tag_t tag)
     return tag == TAG_INT64;
 }
 
+bool is_string(tag_t tag)
+{
+    return tag == TAG_STRING;
+}
+
 void add_fn(array_t* fns, void* fptr, const char* name, const char* sig)
 {
     array_append_obj(fns, (heapptr_t)hostfn_alloc(fptr, name, sig));
@@ -36,6 +41,7 @@ array_t* init_api_core()
 
     // Type tests
     add_fn(fns, &is_int64, "is_int64", "bool(tag)");
+    add_fn(fns, &is_string, "is_string", "bool(tag)");
 
     // Basic string I/O
     add_fn(fns, &print_int64, "print_int64", "void(int64)");
