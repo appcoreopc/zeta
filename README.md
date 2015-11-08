@@ -121,16 +121,16 @@ let fib = fun (n) if n < 1 then n else fib(n-1) + fib(n-1)
 io.println(fib(42))
 
 // This is a global variable declaration
-var y;
+var y
 
 let foo = fun (n)
 {
-    io.println("It's also possible to execute expressions in sequence");
-    io.println("inside blocks with curly braces.");
+    io.println("It's also possible to execute expressions in sequence")
+    io.println("inside blocks with curly braces.")
 
     // Since we have parenthesized expressions, we could almost pretend
     // This is JavaScript code, except for the lack of semicolons
-    if (n < 1) then
+    if n < 1 then
     {
         io.println("n is less than 1")
     }
@@ -146,14 +146,13 @@ let foo = fun (n)
     y = 3
 
     // We can also create anonymous closures
-    let bar = fun () x + y
+    fun () x + y
 
-    // This function returns the closure bar, the last expression we
-    // have evaluated
+    // Function return the the last expression evaluated
 }
 
 // This is an object literal
-let obj = { x:3, y:5 }
+let obj = :{ x:3, y:5 }
 
 // When declaring a method, the "this" argument is simply the first
 // function argument, and you can give it the name you want, avoiding all
@@ -161,7 +160,7 @@ let obj = { x:3, y:5 }
 obj.method = fun (this, x) this.x = x
 
 // This object inherits from obj using prototypal inheritance
-let obj2 = obj::{ y:6, z:7 }
+let obj2 = obj:{ y:6, z:7 }
 
 // The language suppports arrays with zero-based indexing
 let arr = [0, 1, 2, obj, obj2]
