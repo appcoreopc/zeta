@@ -115,7 +115,6 @@ typedef struct ast_decl
 
 /**
 Operator information structure
-TODO: map this as a Zeta object also?
 */
 typedef struct
 {
@@ -238,6 +237,24 @@ typedef struct ast_fun
 
 } ast_fun_t;
 
+/**
+Object literal
+*/
+typedef struct
+{
+    shapeidx_t shape;
+
+    /// Property name strings
+    array_t* name_strs;
+
+    /// Property value expressions
+    array_t* val_exprs;
+
+    /// Prototype object expression (may be null)
+    heapptr_t proto_expr;
+
+} ast_obj_t;
+
 /// Shape indices for AST nodes
 extern shapeidx_t SHAPE_AST_ERROR;
 extern shapeidx_t SHAPE_AST_CONST;
@@ -249,7 +266,7 @@ extern shapeidx_t SHAPE_AST_SEQ;
 extern shapeidx_t SHAPE_AST_IF;
 extern shapeidx_t SHAPE_AST_CALL;
 extern shapeidx_t SHAPE_AST_FUN;
-
+extern shapeidx_t SHAPE_AST_OBJ;
 
 /// Operator definitions
 const opinfo_t OP_MEMBER;

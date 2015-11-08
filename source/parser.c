@@ -21,6 +21,51 @@ shapeidx_t SHAPE_AST_SEQ;
 shapeidx_t SHAPE_AST_IF;
 shapeidx_t SHAPE_AST_CALL;
 shapeidx_t SHAPE_AST_FUN;
+shapeidx_t SHAPE_AST_OBJ;
+
+/// Member operator
+const opinfo_t OP_MEMBER = { ".", NULL, 2, 16, 'l', false };
+
+/// Array indexing
+const opinfo_t OP_INDEX = { "[", "]", 2, 16, 'l', false };
+
+/// Function call, variable arity
+const opinfo_t OP_CALL = { "(", ")", -1, 15, 'l', false };
+
+/// Prefix unary operators
+const opinfo_t OP_NEG = { "-", NULL, 1, 13, 'r', false };
+const opinfo_t OP_NOT = { "not", NULL, 1, 13, 'r', false };
+
+/// Binary arithmetic operators
+const opinfo_t OP_MUL = { "*", NULL, 2, 12, 'l', false };
+const opinfo_t OP_DIV = { "/", NULL, 2, 12, 'l', true };
+const opinfo_t OP_MOD = { "mod", NULL, 2, 12, 'l', true };
+const opinfo_t OP_ADD = { "+", NULL, 2, 11, 'l', false };
+const opinfo_t OP_SUB = { "-", NULL, 2, 11, 'l', true };
+
+/// Relational operators
+const opinfo_t OP_LT = { "<", NULL, 2, 9, 'l', false };
+const opinfo_t OP_LE = { "<=", NULL, 2, 9, 'l', false };
+const opinfo_t OP_GT = { ">", NULL, 2, 9, 'l', false };
+const opinfo_t OP_GE = { ">=", NULL, 2, 9, 'l', false };
+const opinfo_t OP_IN = { "in", NULL, 2, 9, 'l', false };
+const opinfo_t OP_INST_OF = { "instanceof", NULL, 2, 9, 'l', false };
+
+/// Equality comparison
+const opinfo_t OP_EQ = { "==", NULL, 2, 8, 'l', false };
+const opinfo_t OP_NE = { "!=", NULL, 2, 8, 'l', false };
+
+/// Bitwise operators
+const opinfo_t OP_BIT_AND = { "&", NULL, 2, 7, 'l', false };
+const opinfo_t OP_BIT_XOR = { "^", NULL, 2, 6, 'l', false };
+const opinfo_t OP_BIT_OR = { "|", NULL, 2, 5, 'l', false };
+
+/// Logical operators
+const opinfo_t OP_AND = { "and", NULL, 2, 4, 'l', false };
+const opinfo_t OP_OR = { "or", NULL, 2, 3, 'l', false };
+
+// Assignment
+const opinfo_t OP_ASSIGN = { "=", NULL, 2, 1, 'r', false };
 
 /**
 Initialize data needed by the Zeta core parser
@@ -42,6 +87,7 @@ void init_parser()
     SHAPE_AST_IF = shape_alloc_empty()->idx;
     SHAPE_AST_CALL = shape_alloc_empty()->idx;
     SHAPE_AST_FUN = shape_alloc_empty()->idx;
+    SHAPE_AST_OBJ = shape_alloc_empty()->idx;
 }
 
 char* srcpos_to_str(srcpos_t pos, char* buf)
@@ -345,6 +391,23 @@ heapptr_t ast_fun_alloc(
     return (heapptr_t)node;
 }
 
+/// Allocate an object literal node
+heapptr_t ast_obj_alloc(
+    heapptr_t proto_expr,
+    array_t* name_strs,
+    array_t* val_exprs
+)
+{
+    ast_obj_t* node = (ast_obj_t*)vm_alloc(
+        sizeof(ast_obj_t),
+        SHAPE_AST_OBJ
+    );
+    node->proto_expr = proto_expr;
+    node->name_strs = name_strs;
+    node->val_exprs = val_exprs;
+    return (heapptr_t)node;
+}
+
 /**
 Parse an identifier
 */
@@ -632,49 +695,60 @@ heapptr_t parse_fun_expr(input_t* input)
     return (heapptr_t)ast_fun_alloc(param_decls, body_expr);
 }
 
-/// Member operator
-const opinfo_t OP_MEMBER = { ".", NULL, 2, 16, 'l', false };
+/**
+Parse an object literal expression
+fun (x,y,z) <body_expr>
+*/
+heapptr_t parse_obj_expr(input_t* input)
+{
+    array_t* name_strs = array_alloc(4);
 
-/// Array indexing
-const opinfo_t OP_INDEX = { "[", "]", 2, 16, 'l', false };
+    array_t* val_exprs = array_alloc(4);
 
-/// Function call, variable arity
-const opinfo_t OP_CALL = { "(", ")", -1, 15, 'l', false };
+    // Until the end of the list
+    for (;;)
+    {
+        // Read whitespace
+        input_eat_ws(input);
 
-/// Prefix unary operators
-const opinfo_t OP_NEG = { "-", NULL, 1, 13, 'r', false };
-const opinfo_t OP_NOT = { "not", NULL, 1, 13, 'r', false };
+        // If this is the end of the list
+        if (input_match_ch(input, '}'))
+        {
+            break;
+        }
 
-/// Binary arithmetic operators
-const opinfo_t OP_MUL = { "*", NULL, 2, 12, 'l', false };
-const opinfo_t OP_DIV = { "/", NULL, 2, 12, 'l', true };
-const opinfo_t OP_MOD = { "mod", NULL, 2, 12, 'l', true };
-const opinfo_t OP_ADD = { "+", NULL, 2, 11, 'l', false };
-const opinfo_t OP_SUB = { "-", NULL, 2, 11, 'l', true };
+        // Parse an expression
+        heapptr_t expr = parse_expr(input);
 
-/// Relational operators
-const opinfo_t OP_LT = { "<", NULL, 2, 9, 'l', false };
-const opinfo_t OP_LE = { "<=", NULL, 2, 9, 'l', false };
-const opinfo_t OP_GT = { ">", NULL, 2, 9, 'l', false };
-const opinfo_t OP_GE = { ">=", NULL, 2, 9, 'l', false };
-const opinfo_t OP_IN = { "in", NULL, 2, 9, 'l', false };
-const opinfo_t OP_INST_OF = { "instanceof", NULL, 2, 9, 'l', false };
+        // The expression must not fail to parse
+        if (ast_error(expr))
+        {
+            return expr;
+        }
 
-/// Equality comparison
-const opinfo_t OP_EQ = { "==", NULL, 2, 8, 'l', false };
-const opinfo_t OP_NE = { "!=", NULL, 2, 8, 'l', false };
+        /*
+        // Write the expression to the array
+        array_set_obj(arr, arr->len, expr);
 
-/// Bitwise operators
-const opinfo_t OP_BIT_AND = { "&", NULL, 2, 7, 'l', false };
-const opinfo_t OP_BIT_XOR = { "^", NULL, 2, 6, 'l', false };
-const opinfo_t OP_BIT_OR = { "|", NULL, 2, 5, 'l', false };
+        // Read whitespace
+        input_eat_ws(input);
 
-/// Logical operators
-const opinfo_t OP_AND = { "and", NULL, 2, 4, 'l', false };
-const opinfo_t OP_OR = { "or", NULL, 2, 3, 'l', false };
+        // If this is the end of the list
+        if (input_match_ch(input, endCh))
+        {
+            break;
+        }
 
-// Assignment
-const opinfo_t OP_ASSIGN = { "=", NULL, 2, 1, 'r', false };
+        // If this is not the first element, there must be a separator
+        if (!input_match_ch(input, ','))
+        {
+            return ast_error_alloc(input, "expected comma separator in list");
+        }
+        */
+    }
+
+    return (heapptr_t)ast_obj_alloc(NULL, name_strs, val_exprs);
+}
 
 /**
 Try to match an operator in the input
@@ -865,7 +939,13 @@ heapptr_t parse_atom(input_t* input)
     // Array literal
     if (input_match_ch(input, '['))
     {
-        return (heapptr_t)parse_expr_list(input, ']', true);
+        return parse_expr_list(input, ']', true);
+    }
+
+    // Object literal
+    if (input_match_str(input, ":{"))
+    {
+        return parse_obj_expr(input);
     }
 
     // Parenthesized expression
@@ -1246,6 +1326,9 @@ void test_parser()
     test_parse("[1,a, ]");
     test_parse("[ 1,\na ]");
     test_parse_fail("[,]");
+
+    // Object literals
+    test_parse(":{}");
 
     // Comments
     test_parse("1 // comment");

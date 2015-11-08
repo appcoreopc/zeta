@@ -292,6 +292,8 @@ shape_t* shape_def_prop(
     shape_t* defShape
 );
 
+object_t* object_alloc(uint32_t cap);
+
 void test_vm();
 
 #endif

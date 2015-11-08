@@ -101,6 +101,10 @@ void value_print(value_t value)
         }
         break;
 
+        case TAG_OBJECT:
+        printf("object\n");
+        break;
+
         default:
         printf("unknown value tag");
         break;

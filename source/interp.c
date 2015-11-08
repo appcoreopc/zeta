@@ -111,6 +111,8 @@ Find all declarations within an AST subtree
 */
 void find_decls(heapptr_t expr, ast_fun_t* fun)
 {
+    assert (expr != NULL);
+
     // Get the shape of the AST node
     shapeidx_t shape = get_shape(expr);
 
@@ -127,6 +129,20 @@ void find_decls(heapptr_t expr, ast_fun_t* fun)
         array_t* array_expr = (array_t*)expr;
         for (size_t i = 0; i < array_expr->len; ++i)
             find_decls(array_get(array_expr, i).word.heapptr, fun);
+
+        return;
+    }
+
+    // Object literal expression
+    if (shape == SHAPE_AST_OBJ)
+    {
+        ast_obj_t* obj_expr = (ast_obj_t*)expr;
+
+        if (obj_expr->proto_expr)
+            find_decls(obj_expr->proto_expr, fun);
+
+        for (size_t i = 0; i < obj_expr->val_exprs->len; ++i)
+            find_decls(array_get(obj_expr->val_exprs, i).word.heapptr, fun);
 
         return;
     }
@@ -300,6 +316,20 @@ void var_res(heapptr_t expr, ast_fun_t* fun)
         array_t* array_expr = (array_t*)expr;
         for (size_t i = 0; i < array_expr->len; ++i)
             var_res(array_get(array_expr, i).word.heapptr, fun);
+
+        return;
+    }
+
+    // Object literal expression
+    if (shape == SHAPE_AST_OBJ)
+    {
+        ast_obj_t* obj_expr = (ast_obj_t*)expr;
+
+        if (obj_expr->proto_expr)
+            var_res(obj_expr->proto_expr, fun);
+
+        for (size_t i = 0; i < obj_expr->val_exprs->len; ++i)
+            var_res(array_get(obj_expr->val_exprs, i).word.heapptr, fun);
 
         return;
     }
@@ -763,6 +793,22 @@ value_t eval_expr(
         }
 
         return value_from_heapptr((heapptr_t)val_array, TAG_ARRAY);
+    }
+
+    // Object literal expression
+    if (shape == SHAPE_AST_OBJ)
+    {
+        object_t* obj = object_alloc(OBJ_MIN_CAP);
+
+
+
+
+
+
+
+
+
+        return value_from_obj((heapptr_t)obj);
     }
 
     // Binary operator (e.g. a + b)
