@@ -568,7 +568,40 @@ value_t eval_assign(
         return val;
     }
 
-    printf("\n");
+    // Binary operator (e.g. a.b)
+    if (shape == SHAPE_AST_BINOP)
+    {
+        ast_binop_t* binop = (ast_binop_t*)lhs_expr;
+
+        value_t v0 = eval_expr(binop->left_expr, clos, locals);
+        value_t v1 = eval_expr(binop->right_expr, clos, locals);
+
+        if (binop->op == &OP_MEMBER)
+        {
+            if (v0.tag != TAG_OBJECT)
+            {
+                printf("non-object base in property write\n");
+                exit(-1);
+            }
+
+            if (v1.tag != TAG_STRING)
+            {
+                printf("non-string property name in property write\n");
+                exit(-1);
+            }
+
+            object_set_prop(
+                v0.word.object,
+                v1.word.string,
+                val,
+                ATTR_DEFAULT
+            );
+
+            return val;
+        }
+    }
+
+    printf("invalid lhs expression in assignment\n");
     exit(-1);
 }
 
@@ -1166,6 +1199,9 @@ void test_interp()
     test_eval_int("var x = 3    x = 4       x", 4);
     test_eval_int("var x = 3    x = x+1     x", 4);
     test_eval_int("var x = 3    if x != 0 then 1", 1);
+    // FIXME
+    //eval_string("var x", "test");
+    //test_eval_int("var x    var y       x = y = 2", 2);
 
     // Closures and function calls
     test_eval_int("fun () 1                   1", 1);
@@ -1201,9 +1237,8 @@ void test_interp()
     eval_string("let o = :{x:1,y:2}", "test");
     test_eval_int("let o = :{x:1,y:2}     o.x", 1);
     test_eval_int("let o = :{x:1,y:2}     o.y", 2);
-
-
-
+    test_eval_int("let o = :{}      o.x = 3", 3);
+    test_eval_int("let o = :{x:1}   o.x = o.x+1     o.x", 2);
 
 
 }
