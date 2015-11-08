@@ -11,7 +11,6 @@
 #include "vm.h"
 
 /// Shape indices for AST nodes
-/// These are initialized in init_parser(), see parser.c
 shapeidx_t SHAPE_AST_ERROR;
 shapeidx_t SHAPE_AST_CONST;
 shapeidx_t SHAPE_AST_REF;
@@ -26,7 +25,7 @@ shapeidx_t SHAPE_AST_FUN;
 /**
 Initialize data needed by the Zeta core parser
 */
-void parser_init()
+void init_parser()
 {
     // TODO: use shapes to describe AST node struct layouts
     // - use helper functions to make this easier
@@ -1363,5 +1362,7 @@ void test_parser()
 
     parse_check_error(parse_file("global.zeta"));
     parse_check_error(parse_file("parser.zeta"));
+
+    parse_check_error(parse_file("tests/beer.zeta"));
 }
 

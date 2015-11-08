@@ -13,7 +13,6 @@
 #include "api_core.h"
 
 /// Shape indices for mutable cells, closures and host function wrappers
-/// These are initialized in init_interp(), see interp.c
 shapeidx_t SHAPE_CELL;
 shapeidx_t SHAPE_CLOS;
 shapeidx_t SHAPE_HOSTFN;
@@ -21,7 +20,7 @@ shapeidx_t SHAPE_HOSTFN;
 /**
 Initialize the interpreter
 */
-void interp_init()
+void init_interp()
 {
     SHAPE_CELL = shape_alloc_empty()->idx;
     SHAPE_CLOS = shape_alloc_empty()->idx;
@@ -31,7 +30,7 @@ void interp_init()
 /**
 Initialize the runtime
 */
-void runtime_init()
+void init_runtime()
 {
     // Parse the global unit
     ast_fun_t* unit_fun = parse_check_error(parse_file("global.zeta"));

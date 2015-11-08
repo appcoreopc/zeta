@@ -258,7 +258,7 @@ bool value_equals(value_t this, value_t that);
 
 shapeidx_t get_shape(heapptr_t obj);
 
-void vm_init();
+void init_vm();
 heapptr_t vm_alloc(uint32_t size, shapeidx_t shape);
 string_t* vm_get_tbl_str(string_t* str);
 string_t* vm_get_cstr(const char* cstr);

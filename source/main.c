@@ -39,19 +39,19 @@ int main(int argc, char** argv)
     // Check if we are in test mode
     bool test = (argc == 2 && strcmp(argv[1], "--test") == 0);
 
-    vm_init();
+    init_vm();
     if (test)
         test_vm();
 
-    parser_init();
+    init_parser();
     if (test)
         test_parser();
 
-    interp_init();
+    init_interp();
     if (test)
         test_interp();
 
-    runtime_init();
+    init_runtime();
     if (test)
         test_runtime();
 

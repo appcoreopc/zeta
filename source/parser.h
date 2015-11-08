@@ -14,19 +14,6 @@ language.
 #include <stdbool.h>
 #include "vm.h"
 
-/// Shape indices for AST nodes
-/// These are initialized in init_parser(), see parser.c
-extern shapeidx_t SHAPE_AST_ERROR;
-extern shapeidx_t SHAPE_AST_CONST;
-extern shapeidx_t SHAPE_AST_REF;
-extern shapeidx_t SHAPE_AST_DECL;
-extern shapeidx_t SHAPE_AST_BINOP;
-extern shapeidx_t SHAPE_AST_UNOP;
-extern shapeidx_t SHAPE_AST_SEQ;
-extern shapeidx_t SHAPE_AST_IF;
-extern shapeidx_t SHAPE_AST_CALL;
-extern shapeidx_t SHAPE_AST_FUN;
-
 /**
 Source position information
 */
@@ -152,31 +139,6 @@ typedef struct
 
 } opinfo_t;
 
-/// Operator definitions
-const opinfo_t OP_MEMBER;
-const opinfo_t OP_INDEX;
-const opinfo_t OP_NEG;
-const opinfo_t OP_NOT;
-const opinfo_t OP_ADD;
-const opinfo_t OP_SUB;
-const opinfo_t OP_MUL;
-const opinfo_t OP_DIV;
-const opinfo_t OP_MOD;
-const opinfo_t OP_LT;
-const opinfo_t OP_LE;
-const opinfo_t OP_GT;
-const opinfo_t OP_GE;
-const opinfo_t OP_IN;
-const opinfo_t OP_INST_OF;
-const opinfo_t OP_EQ;
-const opinfo_t OP_NE;
-const opinfo_t OP_BIT_AND;
-const opinfo_t OP_BIT_XOR;
-const opinfo_t OP_BIT_OR;
-const opinfo_t OP_AND;
-const opinfo_t OP_OR;
-const opinfo_t OP_ASSIGN;
-
 /**
 Unary operator AST node
 */
@@ -276,9 +238,47 @@ typedef struct ast_fun
 
 } ast_fun_t;
 
+/// Shape indices for AST nodes
+extern shapeidx_t SHAPE_AST_ERROR;
+extern shapeidx_t SHAPE_AST_CONST;
+extern shapeidx_t SHAPE_AST_REF;
+extern shapeidx_t SHAPE_AST_DECL;
+extern shapeidx_t SHAPE_AST_BINOP;
+extern shapeidx_t SHAPE_AST_UNOP;
+extern shapeidx_t SHAPE_AST_SEQ;
+extern shapeidx_t SHAPE_AST_IF;
+extern shapeidx_t SHAPE_AST_CALL;
+extern shapeidx_t SHAPE_AST_FUN;
+
+
+/// Operator definitions
+const opinfo_t OP_MEMBER;
+const opinfo_t OP_INDEX;
+const opinfo_t OP_NEG;
+const opinfo_t OP_NOT;
+const opinfo_t OP_ADD;
+const opinfo_t OP_SUB;
+const opinfo_t OP_MUL;
+const opinfo_t OP_DIV;
+const opinfo_t OP_MOD;
+const opinfo_t OP_LT;
+const opinfo_t OP_LE;
+const opinfo_t OP_GT;
+const opinfo_t OP_GE;
+const opinfo_t OP_IN;
+const opinfo_t OP_INST_OF;
+const opinfo_t OP_EQ;
+const opinfo_t OP_NE;
+const opinfo_t OP_BIT_AND;
+const opinfo_t OP_BIT_XOR;
+const opinfo_t OP_BIT_OR;
+const opinfo_t OP_AND;
+const opinfo_t OP_OR;
+const opinfo_t OP_ASSIGN;
+
 char* srcpos_to_str(srcpos_t pos, char* buf);
 
-void parser_init();
+void init_parser();
 
 bool ast_error(heapptr_t node);
 

@@ -116,7 +116,7 @@ shapeidx_t get_shape(heapptr_t obj)
 }
 
 /// Initialize the VM
-void vm_init()
+void init_vm()
 {
     // Allocate the hosted heap
     // Note: calloc also zeroes out the heap
