@@ -3,10 +3,14 @@ This source file contains the global definitions available through
 other Zeta units.
 */
 
-// TODO
 var print = fun (val)
 {
+    if $is_int64(val) then
+        $print_int64(val)
+    else
+        $print_string(val)
 
+    true
 }
 
 var println = fun (val)
@@ -25,13 +29,12 @@ var import = fun ()
 {
 }
 
-// TODO
 var assert = fun (testVal, errorStr)
 {
     if testVal != true then
     {
-        //print(errorStr)
-        //exit(-1)
+        print(errorStr)
+        $exit(-1)
     }
 }
 

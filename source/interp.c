@@ -50,9 +50,13 @@ void runtime_init()
 
         value_t fn_val;
         fn_val.word.hostfn = fn;
-        fn_val.tag = TAG_OBJECT;
+        fn_val.tag = TAG_HOSTFN;
 
-        heapptr_t decl = ast_decl_alloc((heapptr_t)fn->name, true);
+        // Prepend a $ character to the function name
+        char name[64];
+        sprintf(name, "$%s", string_cstr(fn->name));
+
+        heapptr_t decl = ast_decl_alloc((heapptr_t)vm_get_cstr(name), true);
         heapptr_t cst = ast_const_alloc(fn_val);
         heapptr_t assg = ast_binop_alloc(&OP_ASSIGN, decl, cst);
         array_prepend_obj(exprs, assg);
@@ -600,6 +604,63 @@ value_t eval_call(
 }
 
 /**
+Evaluate a host function call
+*/
+value_t eval_host_call(
+    hostfn_t* callee,
+    array_t* arg_exprs,
+    clos_t* caller,
+    value_t* caller_locals
+)
+{
+    value_t* arg_vals = alloca(sizeof(value_t) * arg_exprs->len);
+
+    // Evaluate the argument values
+    for (size_t i = 0; i < arg_exprs->len; ++i)
+    {
+        //printf("evaluating arg %ld\n", i);
+
+        // Evaluate the parameter value
+        arg_vals[i] = eval_expr(
+            array_get_ptr(arg_exprs, i),
+            caller,
+            caller_locals
+        );
+    }
+
+    // Type test signature
+    if (callee->sig_str == vm_get_cstr("bool(tag)"))
+    {
+        bool (*fptr)(tag_t) = callee->fptr;
+        return fptr(arg_vals[0].tag)? VAL_TRUE:VAL_FALSE;
+    }
+
+    if (callee->sig_str == vm_get_cstr("void(int)"))
+    {
+        void (*fptr)(int) = callee->fptr;
+        fptr(arg_vals[0].word.int32);
+        return VAL_TRUE;
+    }
+
+    if (callee->sig_str == vm_get_cstr("void(int64)"))
+    {
+        void (*fptr)(int64_t) = callee->fptr;
+        fptr(arg_vals[0].word.int64);
+        return VAL_TRUE;
+    }
+
+    if (callee->sig_str == vm_get_cstr("void(string)"))
+    {
+        void (*fptr)(string_t*) = callee->fptr;
+        fptr(arg_vals[0].word.string);
+        return VAL_TRUE;
+    }
+
+    printf("unsupported host function signature\n");
+    exit(-1);
+}
+
+/**
 Evaluate an expression in a given frame
 */
 value_t eval_expr(
@@ -853,18 +914,28 @@ value_t eval_expr(
         // Evaluate the closure expression
         value_t callee_clos = eval_expr(callexpr->fun_expr, clos, locals);
 
-        if (callee_clos.tag != TAG_CLOS)
+        if (callee_clos.tag == TAG_CLOS)
         {
-            printf("expected closure in function call\n");
-            exit(-1);
+            return eval_call(
+                callee_clos.word.clos,
+                callexpr->arg_exprs,
+                clos,
+                locals
+            );
         }
 
-        return eval_call(
-            callee_clos.word.clos,
-            callexpr->arg_exprs,
-            clos,
-            locals
-        );
+        if (callee_clos.tag == TAG_HOSTFN)
+        {
+            return eval_host_call(
+                callee_clos.word.hostfn,
+                callexpr->arg_exprs,
+                clos,
+                locals
+            );
+        }
+
+        printf("invalid callee in function call\n");
+        exit(-1);
     }
 
     printf("eval error, unknown expression type, shapeidx=%d\n", get_shape(expr));

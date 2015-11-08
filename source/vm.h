@@ -206,6 +206,7 @@ typedef struct object
 #define TAG_RAW_PTR     5
 #define TAG_OBJECT      6
 #define TAG_CLOS        7
+#define TAG_HOSTFN      8
 
 /// Initial VM heap size
 #define HEAP_SIZE (1 << 24)
