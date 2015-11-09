@@ -738,6 +738,17 @@ value_t eval_expr(
     // otherwise this interpreter can't handle it
     shapeidx_t shape = get_shape(expr);
 
+    // Variable or constant declaration (let/var)
+    if (shape == SHAPE_AST_DECL)
+    {
+        ast_decl_t* decl = (ast_decl_t*)expr;
+
+        // Let declarations should be initialized
+        assert (decl->cst == false);
+
+        return VAL_FALSE;
+    }
+
     // Variable reference (read)
     if (shape == SHAPE_AST_REF)
     {
@@ -1199,9 +1210,8 @@ void test_interp()
     test_eval_int("var x = 3    x = 4       x", 4);
     test_eval_int("var x = 3    x = x+1     x", 4);
     test_eval_int("var x = 3    if x != 0 then 1", 1);
-    // FIXME
-    //eval_string("var x", "test");
-    //test_eval_int("var x    var y       x = y = 2", 2);
+    eval_string("var x", "test");
+    test_eval_int("var x    var y       x = y = 2", 2);
 
     // Closures and function calls
     test_eval_int("fun () 1                   1", 1);
