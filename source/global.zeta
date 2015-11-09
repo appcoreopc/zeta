@@ -1,6 +1,9 @@
 /**
 This source file contains the global definitions available through
 other Zeta units.
+
+The special functions with names preceded by a dollar sign are
+defined in api_core.c.
 */
 
 var print = fun (val)
@@ -21,14 +24,13 @@ var println = fun (val)
 
 var readLine = fun ()
 {
-    //$read_line()
+    $read_line()
 }
 
 var readFile = fun (fileName)
 {
     assert ($is_string(fileName), "fileName must be a string")
-
-    //$read_file(fileName)
+    $read_file(fileName)
 }
 
 var import = fun ()

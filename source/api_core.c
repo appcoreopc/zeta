@@ -3,12 +3,23 @@ The functions in this file are used to implement the self-hosted
 Zeta parser and JIT compiler
 */
 
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "util.h"
 #include "interp.h"
 #include "api_core.h"
 #include "vm.h"
+
+bool is_int64(tag_t tag)
+{
+    return tag == TAG_INT64;
+}
+
+bool is_string(tag_t tag)
+{
+    return tag == TAG_STRING;
+}
 
 void print_int64(int64_t value)
 {
@@ -20,15 +31,28 @@ void print_string(string_t* string)
     printf("%s", string_cstr(string));
 }
 
-bool is_int64(tag_t tag)
+string_t* _read_line()
 {
-    return tag == TAG_INT64;
+    char* buf = read_line();
+    string_t* str = vm_get_cstr(buf);
+    free(buf);
+    return str;
 }
 
-bool is_string(tag_t tag)
+string_t* _read_file(string_t* file_name)
 {
-    return tag == TAG_STRING;
+    assert (false);
+
+    /*
+    char* buf = read_line();
+    string_t* str = vm_get_cstr(buf);
+    free(buf);
+    return str;
+    */
 }
+
+// TODO: function to allocate an executable memory block
+// look at Higgs source
 
 void add_fn(array_t* fns, void* fptr, const char* name, const char* sig)
 {
@@ -46,8 +70,8 @@ array_t* init_api_core()
     // Basic string I/O
     add_fn(fns, &print_int64, "print_int64", "void(int64)");
     add_fn(fns, &print_string, "print_string", "void(string)");
-    add_fn(fns, &read_line, "read_line", "char*()");
-    add_fn(fns, &read_file, "read_file", "char*(char*)");
+    add_fn(fns, &_read_line, "read_line", "string()");
+    add_fn(fns, &_read_file, "read_file", "string(string)");
 
     // C stdlib
     add_fn(fns, &malloc, "malloc", "void*(size_t)");
@@ -56,7 +80,4 @@ array_t* init_api_core()
 
     return fns;
 }
-
-// TODO: function to allocate an executable memory block
-// look at Higgs source
 

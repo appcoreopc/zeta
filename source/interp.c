@@ -718,6 +718,13 @@ value_t eval_host_call(
         return VAL_TRUE;
     }
 
+    if (callee->sig_str == vm_get_cstr("string()"))
+    {
+        string_t* (*fptr)() = callee->fptr;
+        string_t* str = fptr();
+        return value_from_heapptr((heapptr_t)str, TAG_STRING);
+    }
+
     printf("unsupported host function signature\n");
     exit(-1);
 }
