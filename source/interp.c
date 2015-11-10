@@ -1178,7 +1178,12 @@ value_t eval_file(const char* file_name)
     return eval_unit(unit_fun);
 }
 
-void test_eval(char* cstr, value_t expected)
+void test_eval_try(char* cstr)
+{
+    eval_string(cstr, "test");
+}
+
+void test_eval_equals(char* cstr, value_t expected)
 {
     printf("%s\n", cstr);
 
@@ -1201,17 +1206,17 @@ void test_eval(char* cstr, value_t expected)
 
 void test_eval_int(char* cstr, int64_t expected)
 {
-    test_eval(cstr, value_from_int64(expected));
+    test_eval_equals(cstr, value_from_int64(expected));
 }
 
 void test_eval_true(char* cstr)
 {
-    test_eval(cstr, VAL_TRUE);
+    test_eval_equals(cstr, VAL_TRUE);
 }
 
 void test_eval_false(char* cstr)
 {
-    test_eval(cstr, VAL_FALSE);
+    test_eval_equals(cstr, VAL_FALSE);
 }
 
 void test_interp()
@@ -1219,7 +1224,7 @@ void test_interp()
     printf("core interpreter tests\n");
 
     // Empty unit
-    test_eval_true("");
+    test_eval_try("");
 
     // Literals and constants
     test_eval_int("0", 0);
@@ -1257,9 +1262,11 @@ void test_interp()
     test_eval_int("[7+3][0]", 10);
 
     // Sequence expression
-    test_eval_true("{}");
+    test_eval_try("{}");
     test_eval_int("{ 2 3 }", 3);
     test_eval_int("{ 2 3+7 }", 10);
+    test_eval_int("{ 2; 3 }", 3);
+    test_eval_int("{ 2; 3; }", 3);
     test_eval_int("3 7", 7);
 
     // If expression
@@ -1269,52 +1276,52 @@ void test_interp()
     test_eval_int("if not true then 1 else 0", 0);
 
     // Variable declarations
-    test_eval_int("var x = 3    x", 3);
-    test_eval_int("let x = 7    x+1", 8);
-    test_eval_int("var x = 3    x = 4       x", 4);
-    test_eval_int("var x = 3    x = x+1     x", 4);
-    test_eval_int("var x = 3    if x != 0 then 1", 1);
-    eval_string("var x", "test");
-    test_eval_int("var x    var y       x = y = 2", 2);
+    test_eval_int("var x = 3; x", 3);
+    test_eval_int("let x = 7; x+1", 8);
+    test_eval_int("var x = 3; x = 4; x", 4);
+    test_eval_int("var x = 3; x = x+1; x", 4);
+    test_eval_int("var x = 3; if x != 0 then 1", 1);
+    test_eval_try("var x");
+    test_eval_int("var x; var y; x = y = 2", 2);
 
     // Closures and function calls
-    test_eval_int("fun () 1                   1", 1);
-    test_eval_int("let f = fun () 1           1", 1);
-    test_eval_int("let f = fun () 7           f()", 7);
-    test_eval_int("let f = fun (n) n          f(8)", 8);
-    test_eval_int("let f = fun (a, b) a - b   f(7, 2)", 5);
+    test_eval_int("fun () 1; 1", 1);
+    test_eval_int("let f = fun () 1; 1;", 1);
+    test_eval_int("let f = fun () 7; f()", 7);
+    test_eval_int("let f = fun (n) n; f(8)", 8);
+    test_eval_int("let f = fun (a, b) a - b; f(7, 2)", 5);
 
     // Unit-level variable captured by a closure
-    test_eval_int("let x = 3    let f = fun () x    1", 1);
-    test_eval_int("let x = 3    let f = fun () x    x = 4", 4);
-    test_eval_int("let x = 3    let f = fun () x    x", 3);
+    test_eval_int("let x = 3; let f = fun () x; 1", 1);
+    test_eval_int("let x = 3; let f = fun () x; x = 4", 4);
+    test_eval_int("let x = 3; let f = fun () x; x", 3);
 
     // Reading and assigning to a captured variable
-    test_eval_int("let a = 3    let f = fun () a    f()", 3);
-    test_eval_int("let a = 3    let f = fun () a=2  f()   a", 2);
+    test_eval_int("let a = 3; let f = fun () a; f()", 3);
+    test_eval_int("let a = 3; let f = fun () a=2; f(); a", 2);
 
     // Recursive function
-    test_eval_int("let fib = fun (n) { if n < 2 then n else fib(n-1) + fib(n-2) } fib(11)", 89);
+    test_eval_int("let fib = fun (n) { if n < 2 then n else fib(n-1) + fib(n-2) }; fib(11)", 89);
 
     // Two levels of nesting
-    test_eval_int("let f = fun () { let x = 7 fun() x }     let g = f()     g()", 7);
+    test_eval_int("let f = fun () { let x = 7 fun() x }; let g = f(); g()", 7);
 
     // Capture by inner from outer
-    test_eval_int("let n = 5    let f = fun () { fun() n }     let g = f()     g()", 5);
+    test_eval_int("let n = 5; let f = fun () { fun() n }; let g = f(); g()", 5);
 
     // Captured function parameter
-    test_eval_int("let f = fun (n) { fun () n }      let g = f(88)   g()", 88);
+    test_eval_int("let f = fun (n) { fun () n }; let g = f(88); g()", 88);
 
     // Objects
-    eval_string("let o = :{}", "test");
-    eval_string("let o = :{x:1}", "test");
-    eval_string("let o = :{x:1,y:2}", "test");
-    test_eval_int("let o = :{x:1,y:2}     o.x", 1);
-    test_eval_int("let o = :{x:1,y:2}     o.y", 2);
-    test_eval_int("let o = :{}      o.x = 3", 3);
-    test_eval_int("let o = :{x:1}   o.x = o.x+1     o.x", 2);
+    test_eval_try("let o = :{}");
+    test_eval_try("let o = :{x:1}");
+    test_eval_try("let o = :{x:1,y:2}");
+    test_eval_int("let o = :{x:1,y:2}; o.x", 1);
+    test_eval_int("let o = :{x:1,y:2}; o.y", 2);
+    test_eval_int("let o = :{}; o.x = 3", 3);
+    test_eval_int("let o = :{x:1}; o.x = o.x+1; o.x", 2);
     // FIXME: shape changes not implemented
-    //test_eval_int("let o = :{x:'foo'}   o.x = 3     o.x", 3);
+    //test_eval_int("let o = :{x:'foo'}; o.x = 3; o.x", 3);
 
 
 }

@@ -162,6 +162,10 @@ obj.method = fun (this, x) this.x = x
 // This object inherits from obj using prototypal inheritance
 let obj2 = obj:{ y:6, z:7 }
 
+// There are optional semicolons which are useful in some cases
+// to visually and sometimes semantically separate expressions
+obj2.z = 6; obj2.w = 7;
+
 // The language suppports arrays with zero-based indexing
 let arr = [0, 1, 2, obj, obj2]
 
@@ -172,30 +176,6 @@ export('foo', foo)
 
 Everything is still in flux. Your comments on the syntax and above
 example are welcome.
-
-One issue I'm aware of that may or may not be problematic in practice is
-that the parser is greedy, and the lack of semicolons could make it slightly
-confusing to people. For instance:
-
-```
-// This is a sequence of two expressions, x then y
-x y
-
-// This is x+y and then z+w in a sequence
-x+y
-z+w
-
-// But! The following is interpreted as a function call because of
-// the second set of parentheses
-(x+y)
-(z+w) 
-```
-
-We may or may not want to use semicolons to separate expressions inside
-sequences (at the top-level of scripts and inside curly braces). The question
-would then be whether semicolons should be optional or mandatory. I expect
-such issues will be easier to work out once we start writing more Zeta code
-and dogfooding the system.
 
 ## Language Extensions
 

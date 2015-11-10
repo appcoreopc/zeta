@@ -589,7 +589,7 @@ heapptr_t parse_if_expr(input_t* input)
 /**
 Parse a list of expressions
 */
-heapptr_t parse_expr_list(input_t* input, char endCh, bool needSep)
+heapptr_t parse_expr_list(input_t* input, char endCh)
 {
     // Allocate an array with an initial capacity
     array_t* arr = array_alloc(4);
@@ -628,13 +628,63 @@ heapptr_t parse_expr_list(input_t* input, char endCh, bool needSep)
         }
 
         // If this is not the first element, there must be a separator
-        if (needSep && !input_match_ch(input, ','))
+        if (!input_match_ch(input, ','))
         {
             return ast_error_alloc(input, "expected comma separator in list");
         }
     }
 
     return (heapptr_t)arr;
+}
+
+/**
+Parse a sequence expression
+*/
+heapptr_t parse_seq_expr(input_t* input, char endCh)
+{
+    // Allocate an array with an initial capacity
+    array_t* arr = array_alloc(4);
+
+    // Until the end of the list
+    for (;;)
+    {
+        // Read whitespace
+        input_eat_ws(input);
+
+        // If this is the end of the list
+        if (input_match_ch(input, endCh))
+        {
+            break;
+        }
+
+        // Parse an expression
+        heapptr_t expr = parse_expr(input);
+
+        // The expression must not fail to parse
+        if (ast_error(expr))
+        {
+            return expr;
+        }
+
+        // Write the expression to the array
+        array_set_obj(arr, arr->len, expr);
+
+        // Read whitespace
+        input_eat_ws(input);
+
+        // If this is the end of the list
+        if (input_match_ch(input, endCh))
+        {
+            break;
+        }
+
+        // Match a semicolon if one is present (optional)
+        if (input_match_ch(input, ';'))
+        {
+        }
+    }
+
+    return ast_seq_alloc(arr);
 }
 
 /**
@@ -950,7 +1000,7 @@ heapptr_t parse_atom(input_t* input)
     // Array literal
     if (input_match_ch(input, '['))
     {
-        return parse_expr_list(input, ']', true);
+        return parse_expr_list(input, ']');
     }
 
     // Object literal
@@ -979,14 +1029,7 @@ heapptr_t parse_atom(input_t* input)
     // Sequence/block expression (i.e { a; b; c }
     if (input_match_ch(input, '{'))
     {
-        heapptr_t expr_list = parse_expr_list(input, '}', false);
-
-        if (ast_error(expr_list))
-        {
-            return expr_list;
-        }
-
-        return ast_seq_alloc((array_t*)expr_list);
+        return parse_seq_expr(input, '}');
     }
 
     // Try matching a right-associative (prefix) unary operators
@@ -1104,7 +1147,7 @@ heapptr_t parse_expr_prec(input_t* input, int minPrec)
         if (op == &OP_CALL)
         {
             // Parse the argument list and create the call expression
-            heapptr_t arg_exprs = parse_expr_list(input, ')', true);
+            heapptr_t arg_exprs = parse_expr_list(input, ')');
 
             if (ast_error(arg_exprs))
                 return arg_exprs;
@@ -1191,31 +1234,13 @@ Parse a source unit from an input object
 */
 heapptr_t parse_unit(input_t* input)
 {
-    // Allocate an array with an initial capacity
-    array_t* arr = array_alloc(32);
-
-    // Until the end of the input is reached
-    for (;;)
-    {
-        // If this is the end of the input, stop
-        input_eat_ws(input);
-        if (input_eof(input))
-            break;
-
-        // Parse one expression
-        heapptr_t expr = parse_expr(input);
-
-        if (ast_error(expr))
-        {
-            return expr;
-        }
-
-        // Write the expression to the array
-        array_set_obj(arr, arr->len, expr);
-    }
-
     // Create a sequence expression from the expression list
-    heapptr_t seq_expr = ast_seq_alloc(arr);
+    heapptr_t seq_expr = parse_seq_expr(input, '\0');
+
+    if (ast_error(seq_expr))
+    {
+        return seq_expr;
+    }
 
     // Create an empty array for the parameter list
     array_t* param_list = array_alloc(0);
