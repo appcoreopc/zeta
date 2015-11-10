@@ -51,14 +51,19 @@ Host function wrapper
 */
 typedef struct hostfn
 {
-    /// C function pointer
-    void* fptr;
+    shapeidx_t shape;
+
+    /// Number of function parameters
+    uint32_t num_params;
+
+    /// Type signature string
+    string_t* sig_str;
 
     /// Function name
     string_t* name;
 
-    /// Type signature string
-    string_t* sig_str;
+    /// C function pointer
+    void* fptr;
 
 } hostfn_t;
 

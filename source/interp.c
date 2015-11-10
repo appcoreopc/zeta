@@ -99,9 +99,50 @@ hostfn_t* hostfn_alloc(void* fptr, const char* name, const char* sig_str)
         SHAPE_HOSTFN
     );
 
-    fn->fptr = fptr;
+    size_t num_params = 0;
+
+    // Parse the signature string with a state machine
+    #define STATE_RET   0
+    #define STATE_PARAM 1
+    #define STATE_COMMA 2
+    #define STATE_END   3
+    int state = STATE_RET;
+    for (size_t i = 0; state != STATE_END; i++)
+    {
+        char c = sig_str[i];
+
+        switch (state)
+        {
+            case STATE_RET:
+            if (c == '\0')
+                state = STATE_END;
+            else if (c == '(')
+                state = STATE_PARAM;
+            break;
+
+            case STATE_PARAM:
+            assert (c != '\0');
+            if (c == ',')
+                state = STATE_COMMA;
+            else if (c == ')')
+                state = STATE_END;
+            num_params++;
+            break;
+
+            case STATE_COMMA:
+            assert (c != ',' && c != ')' && c != '\0');
+            state = STATE_PARAM;
+            break;
+
+            default:
+            assert (false);
+        }
+    }
+
     fn->name = vm_get_cstr(name);
     fn->sig_str = vm_get_cstr(sig_str);
+    fn->num_params = num_params;
+    fn->fptr = fptr;
 
     return fn;
 }
@@ -677,6 +718,15 @@ value_t eval_host_call(
 {
     value_t* arg_vals = alloca(sizeof(value_t) * arg_exprs->len);
 
+    if (arg_exprs->len != callee->num_params)
+    {
+        printf(
+            "argument count mismatch in call to %s\n",
+            string_cstr(callee->name)
+        );
+        exit(-1);
+    }
+
     // Evaluate the argument values
     for (size_t i = 0; i < arg_exprs->len; ++i)
     {
@@ -722,6 +772,13 @@ value_t eval_host_call(
     {
         string_t* (*fptr)() = callee->fptr;
         string_t* str = fptr();
+        return value_from_heapptr((heapptr_t)str, TAG_STRING);
+    }
+
+    if (callee->sig_str == vm_get_cstr("string(string)"))
+    {
+        string_t* (*fptr)(string_t*) = callee->fptr;
+        string_t* str = fptr(arg_vals[0].word.string);
         return value_from_heapptr((heapptr_t)str, TAG_STRING);
     }
 
@@ -1256,6 +1313,8 @@ void test_interp()
     test_eval_int("let o = :{x:1,y:2}     o.y", 2);
     test_eval_int("let o = :{}      o.x = 3", 3);
     test_eval_int("let o = :{x:1}   o.x = o.x+1     o.x", 2);
+    // FIXME: shape changes not implemented
+    //test_eval_int("let o = :{x:'foo'}   o.x = 3     o.x", 3);
 
 
 }

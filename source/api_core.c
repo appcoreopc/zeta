@@ -31,7 +31,7 @@ void print_string(string_t* string)
     printf("%s", string_cstr(string));
 }
 
-string_t* _read_line()
+string_t* core_read_line()
 {
     char* buf = read_line();
     string_t* str = vm_get_cstr(buf);
@@ -39,16 +39,12 @@ string_t* _read_line()
     return str;
 }
 
-string_t* _read_file(string_t* file_name)
+string_t* core_read_file(string_t* file_name)
 {
-    assert (false);
-
-    /*
-    char* buf = read_line();
+    char* buf = read_file(string_cstr(file_name));
     string_t* str = vm_get_cstr(buf);
     free(buf);
     return str;
-    */
 }
 
 // TODO: function to allocate an executable memory block
@@ -70,8 +66,8 @@ array_t* init_api_core()
     // Basic string I/O
     add_fn(fns, &print_int64, "print_int64", "void(int64)");
     add_fn(fns, &print_string, "print_string", "void(string)");
-    add_fn(fns, &_read_line, "read_line", "string()");
-    add_fn(fns, &_read_file, "read_file", "string(string)");
+    add_fn(fns, &core_read_line, "read_line", "string()");
+    add_fn(fns, &core_read_file, "read_file", "string(string)");
 
     // C stdlib
     add_fn(fns, &malloc, "malloc", "void*(size_t)");

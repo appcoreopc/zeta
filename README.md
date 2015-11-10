@@ -206,10 +206,11 @@ Some useful language extensions I can think of
 - Variable arity functions, optional arguments, keyword arguments
 - Multiple return values
 - Dictionary types
-- JS-like regular expressions
-- JS-like template strings
 - PHP-like templating mode
 - MATLAB-like vector and matrix arithmetic
+- JS-like regular expressions
+- JS-like template strings
+- A "jsify" extension that makes the grammar JS-like
 
 ## Zeta VM
 

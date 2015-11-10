@@ -2,7 +2,7 @@
 This source file contains the global definitions available through
 other Zeta units.
 
-The special functions with names preceded by a dollar sign are
+The primitive functions with names preceded by a dollar sign are
 defined in api_core.c.
 */
 
