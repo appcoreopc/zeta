@@ -43,6 +43,8 @@ Planned features of the Zeta programming language include:
 
 - Dynamically extensible objects with prototypal inheritance, as in JavaScript
 
+- Dynamically extensible arrays with zero-based indexing, as in JavaScript
+
 - No distinction between statements and expression, everything is an expression, as in LISP
 
 - A user-extensible grammar, giving programmers the ability to define new syntactic constructs
@@ -166,7 +168,7 @@ let obj2 = obj:{ y:6, z:7 }
 // to visually and sometimes semantically separate expressions
 obj2.z = 6; obj2.w = 7;
 
-// The language suppports arrays with zero-based indexing
+// The language suppports arrays similar to JS
 let arr = [0, 1, 2, obj, obj2]
 
 // Make the fib and foo functions available to other modules.
