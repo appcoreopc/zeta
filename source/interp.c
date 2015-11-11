@@ -103,35 +103,51 @@ hostfn_t* hostfn_alloc(void* fptr, const char* name, const char* sig_str)
 
     // Parse the signature string with a state machine
     #define STATE_RET   0
-    #define STATE_PARAM 1
-    #define STATE_COMMA 2
-    #define STATE_END   3
+    #define STATE_OPEN  1
+    #define STATE_PARAM 2
+    #define STATE_COMMA 3
+    #define STATE_CLOSE 4
     int state = STATE_RET;
-    for (size_t i = 0; state != STATE_END; i++)
+    size_t param_len = 0;
+    for (size_t i = 0; state != STATE_CLOSE; i++)
     {
         char c = sig_str[i];
 
         switch (state)
         {
+            // Reading the return type
             case STATE_RET:
-            if (c == '\0')
-                state = STATE_END;
-            else if (c == '(')
-                state = STATE_PARAM;
+            assert (c != '\0');
+            if (c == '(')
+                state = STATE_OPEN;
             break;
 
+            // Just read the opening parenthesis
+            case STATE_OPEN:
+            assert (c != '\0' && c != ',');
+            if (c == ')')
+                state = STATE_CLOSE;
+            else
+            {
+                state = STATE_PARAM;
+                num_params++;
+            }
+            break;
+
+            // Just read a character of a parameter
             case STATE_PARAM:
             assert (c != '\0');
             if (c == ',')
                 state = STATE_COMMA;
             else if (c == ')')
-                state = STATE_END;
-            num_params++;
+                state = STATE_CLOSE;
             break;
 
+            // Just read a comma
             case STATE_COMMA:
             assert (c != ',' && c != ')' && c != '\0');
             state = STATE_PARAM;
+            num_params++;
             break;
 
             default:
@@ -647,6 +663,50 @@ value_t eval_assign(
 }
 
 /**
+Evaluate a property read
+*/
+value_t eval_get_prop(
+    value_t base,
+    value_t prop_name
+)
+{
+    if (prop_name.tag != TAG_STRING)
+    {
+        printf("non-string property name in property read\n");
+        exit(-1);
+    }
+
+    string_t* name_str = prop_name.word.string;
+
+    if (base.tag == TAG_OBJECT)
+    {
+        return object_get_prop(base.word.object, name_str);
+    }
+
+    if (base.tag == TAG_STRING)
+    {
+        if (name_str == vm_get_cstr("length"))
+            return value_from_int64(base.word.string->len);
+
+        assert (false);
+    }
+
+    if (base.tag == TAG_ARRAY)
+    {
+        if (name_str == vm_get_cstr("length"))
+            return value_from_int64(base.word.array->len);
+
+        assert (false);
+    }
+
+    printf(
+        "invalid base in property read with key \"%s\"\n",
+        string_cstr(name_str)
+    );
+    exit(-1);
+}
+
+/**
 Evaluate a function call
 */
 value_t eval_call(
@@ -721,8 +781,10 @@ value_t eval_host_call(
     if (arg_exprs->len != callee->num_params)
     {
         printf(
-            "argument count mismatch in call to %s\n",
-            string_cstr(callee->name)
+            "argument count mismatch in call to %s, got %d, expected %d\n",
+            string_cstr(callee->name),
+            arg_exprs->len,
+            callee->num_params
         );
         exit(-1);
     }
@@ -959,21 +1021,7 @@ value_t eval_expr(
         int64_t i1 = v1.word.int64;
 
         if (binop->op == &OP_MEMBER)
-        {
-            if (v0.tag != TAG_OBJECT)
-            {
-                printf("non-object base in property read\n");
-                exit(-1);
-            }
-
-            if (v1.tag != TAG_STRING)
-            {
-                printf("non-string property name in property read\n");
-                exit(-1);
-            }
-
-            return object_get_prop(v0.word.object, v1.word.string);
-        }
+            return eval_get_prop(v0, v1);
 
         if (binop->op == &OP_INDEX)
             return array_get((array_t*)v0.word.heapptr, i1);
@@ -1261,6 +1309,11 @@ void test_interp()
     test_eval_int("[0,1,2][0]", 0);
     test_eval_int("[7+3][0]", 10);
 
+    // Length property
+    test_eval_int("[].length", 0);
+    test_eval_int("[1,2].length", 2);
+    test_eval_int("'foo'.length", 3);
+
     // Sequence expression
     test_eval_try("{}");
     test_eval_int("{ 2 3 }", 3);
@@ -1336,7 +1389,7 @@ void test_runtime()
     test_eval_true("assert (true, '')   true");
 
     eval_file("tests/list-sum.zeta");
-
+    eval_file("tests/read_text_file.zeta");
 
 
 
