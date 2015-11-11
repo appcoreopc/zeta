@@ -1061,6 +1061,8 @@ value_t eval_expr(
         value_t v1 = eval_expr(binop->right_expr, clos, locals);
         int64_t i0 = v0.word.int64;
         int64_t i1 = v1.word.int64;
+        string_t* s0 = v0.word.string;
+        string_t* s1 = v1.word.string;
 
         if (binop->op == &OP_MEMBER)
             return eval_get_prop(v0, v1);
@@ -1081,12 +1083,27 @@ value_t eval_expr(
 
         if (binop->op == &OP_LT)
             return (i0 < i1)? VAL_TRUE:VAL_FALSE;
+
         if (binop->op == &OP_LE)
-            return (i0 <= i1)? VAL_TRUE:VAL_FALSE;
+        {
+            if (v0.tag == TAG_STRING && v1.tag == TAG_STRING)
+                return (strcmp(string_cstr(s0), string_cstr(s1)) <= 0)? VAL_TRUE:VAL_FALSE;
+            if (v0.tag == TAG_INT64 && v1.tag == TAG_INT64)
+                return (i0 <= i1)? VAL_TRUE:VAL_FALSE;
+            assert (false);
+        }
+
         if (binop->op == &OP_GT)
             return (i0 > i1)? VAL_TRUE:VAL_FALSE;
+
         if (binop->op == &OP_GE)
-            return (i0 >= i1)? VAL_TRUE:VAL_FALSE;
+        {
+            if (v0.tag == TAG_STRING && v1.tag == TAG_STRING)
+                return (strcmp(string_cstr(s0), string_cstr(s1)) >= 0)? VAL_TRUE:VAL_FALSE;
+            if (v0.tag == TAG_INT64 && v1.tag == TAG_INT64)
+                return (i0 >= i1)? VAL_TRUE:VAL_FALSE;
+            assert (false);
+        }
 
         if (binop->op == &OP_EQ)
             return value_equals(v0, v1)? VAL_TRUE:VAL_FALSE;
@@ -1345,6 +1362,12 @@ void test_interp()
     test_eval_false("'foo' == 'bar'");
     test_eval_true("'f' != 'b'");
     test_eval_false("'f' != 'f'");
+    test_eval_true("'a' <= 'a'");
+    test_eval_true("'b' <= 'b'");
+    test_eval_false("'c' <= 'b'");
+    test_eval_true("'a' >= 'a'");
+    test_eval_true("'b' >= 'a'");
+    test_eval_false("'a' >= 'b'");
 
     // Arrays
     test_eval_int("[7][0]", 7);

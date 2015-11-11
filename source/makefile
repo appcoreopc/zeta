@@ -39,7 +39,7 @@ test_valgrind: debug
 	valgrind --error-exitcode=1 ./zeta --test
 
 test: debug
-	./zeta --test
+	time ./zeta --test
 
 debug: *.c
 	$(CC) $(CFLAGS) $(CFLAGS_debug) -o zeta $(C_SRCS)

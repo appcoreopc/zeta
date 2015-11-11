@@ -69,9 +69,9 @@ Zeta takes inspiration from JavaScript, but notable differences include:
 
 - Object properties cannot be deleted
 
-- Arrays cannot have "holes" (missing elements)
-
 - Attempting to read missing object properties throws an exception
+
+- Arrays cannot have "holes" (missing elements)
 
 - Distinct 64-bit integer and floating-point value types
 
