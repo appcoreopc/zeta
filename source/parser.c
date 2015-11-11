@@ -499,6 +499,16 @@ heapptr_t parse_string_lit(input_t* input, char endCh)
 
     for (;;)
     {
+        // If this is the end of the input
+        if (input_eof(input))
+        {
+            free(buf);
+            return ast_error_alloc(
+                input,
+                "end of input inside string literal"
+            );
+        }
+
         // Consume this character
         char ch = input_read_ch(input);
 
@@ -1486,6 +1496,9 @@ void test_parser()
     test_parse_fail("{ a, }");
     test_parse_fail("{ a, b }");
     test_parse_fail("fun foo () { a, }");
+
+    // Regressions
+    test_parse_fail("'a' <'");
 
     parse_check_error(parse_file("global.zeta"));
     parse_check_error(parse_file("parser.zeta"));
