@@ -663,6 +663,48 @@ value_t eval_assign(
 }
 
 /**
+Evaluate an indexable element read
+*/
+value_t eval_get_index(
+    value_t base,
+    value_t index
+)
+{
+    if (index.tag != TAG_INT64)
+    {
+        printf("non-integer property name in indexed read\n");
+        exit(-1);
+    }
+
+    int64_t idx = index.word.int64;
+
+    if (idx < 0)
+    {
+        printf("negative index in indexed read\n");
+        exit(-1);
+    }
+
+    if (base.tag == TAG_ARRAY)
+    {
+        return array_get(base.word.array, idx);
+    }
+
+    if (base.tag == TAG_STRING)
+    {
+        char ch = base.word.string->data[idx];
+
+        char buf[] = { ch, '\0' };
+        string_t* char_str = vm_get_cstr(buf);
+        return value_from_heapptr((heapptr_t)char_str, TAG_STRING);
+    }
+
+    printf(
+        "invalid base in indexed read\n"
+    );
+    exit(-1);
+}
+
+/**
 Evaluate a property read
 */
 value_t eval_get_prop(
@@ -1024,7 +1066,7 @@ value_t eval_expr(
             return eval_get_prop(v0, v1);
 
         if (binop->op == &OP_INDEX)
-            return array_get((array_t*)v0.word.heapptr, i1);
+            return eval_get_index(v0, v1);
 
         if (binop->op == &OP_ADD)
             return value_from_int64(i0 + i1);
@@ -1308,11 +1350,13 @@ void test_interp()
     test_eval_int("[7][0]", 7);
     test_eval_int("[0,1,2][0]", 0);
     test_eval_int("[7+3][0]", 10);
-
-    // Length property
     test_eval_int("[].length", 0);
     test_eval_int("[1,2].length", 2);
+
+    // Strings
+    test_eval_int("''.length", 0);
     test_eval_int("'foo'.length", 3);
+    test_eval_true("'foobar'[3] == 'b'");
 
     // Sequence expression
     test_eval_try("{}");

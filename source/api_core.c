@@ -31,6 +31,14 @@ void print_string(string_t* string)
     printf("%s", string_cstr(string));
 }
 
+int64_t string_get_charcode(string_t* string, int64_t index)
+{
+    assert (string != NULL);
+    assert (index >= 0);
+    assert (index < string->len);
+    return string->data[index];
+}
+
 string_t* core_read_line()
 {
     char* buf = read_line();
@@ -62,6 +70,9 @@ array_t* init_api_core()
     // Type tests
     add_fn(fns, &is_int64, "is_int64", "bool(tag)");
     add_fn(fns, &is_string, "is_string", "bool(tag)");
+
+    // Misc
+    add_fn(fns, &string_get_charcode, "string_get_charcode", "int64(string, int64)");
 
     // Basic string I/O
     add_fn(fns, &print_int64, "print_int64", "void(int64)");

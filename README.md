@@ -65,6 +65,8 @@ Zeta takes inspiration from JavaScript, but notable differences include:
 
 - No `new` keyword or constructor functions
 
+- The `==` and `!=` operators are strict identity comparisons
+
 - Object properties cannot be deleted
 
 - Arrays cannot have "holes" (missing elements)
