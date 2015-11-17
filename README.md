@@ -189,6 +189,7 @@ Some useful language extensions I can think of
 
 - Variable arity functions, optional arguments, keyword arguments
 - Multiple return values
+- For-in loops to iterate over various containers
 - Dictionary types
 - PHP-like templating mode
 - MATLAB-like vector and matrix arithmetic
