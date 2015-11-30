@@ -10,6 +10,7 @@ addons:
     packages:
       - gcc-4.8
       - valgrind
+      - time
 
 # Run only on the master branch
 branches:
