@@ -42,51 +42,47 @@ class Input
     /// Current source position
     SrcPos pos;
 
-    /*
-    input_t input_from_string(string_t* str, string_t* src_name)
+    this(string str, string srcName)
     {
-        input_t input;
-        input.str = str;
-        input.idx = 0;
-        input.src_name = src_name;
-        input.pos.lineNo = 0;
-        input.pos.colNo = 0;
-        return input;
+        assert (str != null);
+
+        this.str = str;
+        this.idx = 0;
+        this.pos.file = srcName;
+        this.pos.line = 1;
+        this.pos.col = 1;
     }
 
     /// Test if the end of file has been reached
-    bool input_eof(input_t* input)
+    bool eof()
     {
-        assert (input->str != NULL);
-        return (input->idx >= input->str->len);
+        return idx >= str.length;
     }
 
     /// Peek at a character from the input
-    char input_peek_ch(input_t* input)
+    char peekCh()
     {
-        assert (input->str != NULL);
-
-        if (input->idx >= input->str->len)
+        if (idx >= str.length)
             return '\0';
 
-        return input->str->data[input->idx];
+        return str[idx];
     }
 
     /// Read a character from the input
-    char input_read_ch(input_t* input)
+    char readCh()
     {
-        char ch = input_peek_ch(input);
+        char ch = peekCh();
 
-        input->idx++;
+        idx++;
 
         if (ch == '\n')
         {
-            input->pos.lineNo++;
-            input->pos.colNo = 0;
+            pos.line++;
+            pos.col = 0;
         }
         else
         {
-            input->pos.colNo++;
+            pos.col++;
         }
 
         return ch;
@@ -94,17 +90,18 @@ class Input
 
     /// Try and match a given character in the input
     /// The character is consumed if matched
-    bool input_match_ch(input_t* input, char ch)
+    bool matchCh(char ch)
     {
-        if (input_peek_ch(input) == ch)
+        if (peekCh() == ch)
         {
-            input_read_ch(input);
+            readCh();
             return true;
         }
 
         return false;
     }
 
+    /*
     /// Try and match a given string in the input
     /// The string is consumed if matched
     bool input_match_str(input_t* input, char* str)
@@ -196,163 +193,6 @@ class Input
 
 
 
-/*
-/// Allocate an integer node
-heapptr_t ast_const_alloc(value_t val)
-{
-    ast_const_t* node = (ast_const_t*)vm_alloc(
-        sizeof(ast_const_t),
-        SHAPE_AST_CONST
-    );
-    node->val = val;
-    return (heapptr_t)node;
-}
-
-/// Allocate a reference node
-heapptr_t ast_ref_alloc(heapptr_t name_str)
-{
-    ast_ref_t* node = (ast_ref_t*)vm_alloc(
-        sizeof(ast_ref_t),
-        SHAPE_AST_REF
-    );
-    assert (get_shape(name_str) == SHAPE_STRING);
-    node->name = (string_t*)name_str;
-    node->idx = 0xFFFF;
-    node->decl = NULL;
-    return (heapptr_t)node;
-}
-
-/// Allocate a declaration node
-heapptr_t ast_decl_alloc(heapptr_t name_str, bool cst)
-{
-    ast_decl_t* node = (ast_decl_t*)vm_alloc(
-        sizeof(ast_decl_t),
-        SHAPE_AST_DECL
-    );
-    assert (get_shape(name_str) == SHAPE_STRING);
-    node->name = (string_t*)name_str;
-    node->idx = 0xFFFF;
-    node->cst = cst;
-    node->esc = false;
-    return (heapptr_t)node;
-}
-
-/// Allocate a binary operator node
-heapptr_t ast_binop_alloc(
-    const opinfo_t* op,
-    heapptr_t left_expr,
-    heapptr_t right_expr
-)
-{
-    ast_binop_t* node = (ast_binop_t*)vm_alloc(
-        sizeof(ast_binop_t),
-        SHAPE_AST_BINOP
-    );
-    node->op = op;
-    node->left_expr = left_expr;
-    node->right_expr = right_expr;
-    return (heapptr_t)node;
-}
-
-/// Allocate a unary operator node
-heapptr_t ast_unop_alloc(
-    const opinfo_t* op,
-    heapptr_t expr
-)
-{
-    ast_unop_t* node = (ast_unop_t*)vm_alloc(
-        sizeof(ast_unop_t),
-        SHAPE_AST_UNOP
-    );
-    node->op = op;
-    node->expr = expr;
-    return (heapptr_t)node;
-}
-
-/// Allocate an sequence expression node
-heapptr_t ast_seq_alloc(
-    array_t* expr_list
-)
-{
-    ast_seq_t* node = (ast_seq_t*)vm_alloc(
-        sizeof(ast_seq_t),
-        SHAPE_AST_SEQ
-    );
-    node->expr_list = expr_list;
-    return (heapptr_t)node;
-}
-
-/// Allocate an if expression node
-heapptr_t ast_if_alloc(
-    heapptr_t test_expr,
-    heapptr_t then_expr,
-    heapptr_t else_expr
-)
-{
-    ast_if_t* node = (ast_if_t*)vm_alloc(
-        sizeof(ast_if_t),
-        SHAPE_AST_IF
-    );
-    node->test_expr = test_expr;
-    node->then_expr = then_expr;
-    node->else_expr = else_expr;
-    return (heapptr_t)node;
-}
-
-/// Allocate a function call node
-heapptr_t ast_call_alloc(
-    heapptr_t fun_expr,
-    array_t* arg_exprs
-)
-{
-    ast_call_t* node = (ast_call_t*)vm_alloc(
-        sizeof(ast_call_t),
-        SHAPE_AST_CALL
-    );
-    node->fun_expr = fun_expr;
-    node->arg_exprs = arg_exprs;
-    return (heapptr_t)node;
-}
-
-/// Allocate a function expression node
-heapptr_t ast_fun_alloc(
-    array_t* param_decls,
-    heapptr_t body_expr
-)
-{
-    ast_fun_t* node = (ast_fun_t*)vm_alloc(
-        sizeof(ast_fun_t),
-        SHAPE_AST_FUN
-    );
-    node->parent = NULL;
-    node->param_decls = param_decls;
-    node->local_decls = array_alloc(4);
-    node->esc_locals = array_alloc(4);
-    node->free_vars = array_alloc(4);
-    node->body_expr = body_expr;
-    return (heapptr_t)node;
-}
-
-/// Allocate an object literal node
-heapptr_t ast_obj_alloc(
-    heapptr_t proto_expr,
-    array_t* name_strs,
-    array_t* val_exprs
-)
-{
-    //printf("%p\n", name_strs);
-    //printf("%p\n", val_exprs);
-
-    ast_obj_t* node = (ast_obj_t*)vm_alloc(
-        sizeof(ast_obj_t),
-        SHAPE_AST_OBJ
-    );
-    node->proto_expr = proto_expr;
-    node->name_strs = name_strs;
-    node->val_exprs = val_exprs;
-    return (heapptr_t)node;
-}
-*/
 
 /**
 Parse an identifier
