@@ -1,249 +1,202 @@
 import std.stdio;
 import std.file;
+import std.format;
 import ast;
 
-/*
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
-#include <ctype.h>
-#include <string.h>
-#include "parser.h"
-#include "util.h"
-#include "vm.h"
+/**
+Parsing error exception
 */
+class ParseError : Error
+{
+    /// Source position
+    SrcPos pos;
 
+    this(string msg, SrcPos pos)
+    {
+        assert (pos !is null, "source position is null");
 
+        super(msg);
+        this.pos = pos;
+    }
 
+    override string toString()
+    {
+        return pos.toString() ~ ": " ~ this.msg;
+    }
+}
 
-
-/*
-/// Shape indices for AST nodes
-shapeidx_t SHAPE_AST_ERROR;
-shapeidx_t SHAPE_AST_CONST;
-shapeidx_t SHAPE_AST_REF;
-shapeidx_t SHAPE_AST_DECL;
-shapeidx_t SHAPE_AST_BINOP;
-shapeidx_t SHAPE_AST_UNOP;
-shapeidx_t SHAPE_AST_SEQ;
-shapeidx_t SHAPE_AST_IF;
-shapeidx_t SHAPE_AST_CALL;
-shapeidx_t SHAPE_AST_FUN;
-shapeidx_t SHAPE_AST_OBJ;
-
-/// Member operator
-const opinfo_t OP_MEMBER = { ".", NULL, 2, 16, 'l', false };
-
-/// Array indexing
-const opinfo_t OP_INDEX = { "[", "]", 2, 16, 'l', false };
-
-/// Function call, variable arity
-const opinfo_t OP_CALL = { "(", ")", -1, 15, 'l', false };
-
-/// Prefix unary operators
-const opinfo_t OP_NEG = { "-", NULL, 1, 13, 'r', false };
-const opinfo_t OP_NOT = { "not", NULL, 1, 13, 'r', false };
-
-/// Binary arithmetic operators
-const opinfo_t OP_MUL = { "*", NULL, 2, 12, 'l', false };
-const opinfo_t OP_DIV = { "/", NULL, 2, 12, 'l', true };
-const opinfo_t OP_MOD = { "mod", NULL, 2, 12, 'l', true };
-const opinfo_t OP_ADD = { "+", NULL, 2, 11, 'l', false };
-const opinfo_t OP_SUB = { "-", NULL, 2, 11, 'l', true };
-
-/// Relational operators
-const opinfo_t OP_LT = { "<", NULL, 2, 9, 'l', false };
-const opinfo_t OP_LE = { "<=", NULL, 2, 9, 'l', false };
-const opinfo_t OP_GT = { ">", NULL, 2, 9, 'l', false };
-const opinfo_t OP_GE = { ">=", NULL, 2, 9, 'l', false };
-const opinfo_t OP_IN = { "in", NULL, 2, 9, 'l', false };
-const opinfo_t OP_INST_OF = { "instanceof", NULL, 2, 9, 'l', false };
-
-/// Equality comparison
-const opinfo_t OP_EQ = { "==", NULL, 2, 8, 'l', false };
-const opinfo_t OP_NE = { "!=", NULL, 2, 8, 'l', false };
-
-/// Bitwise operators
-const opinfo_t OP_BIT_AND = { "&", NULL, 2, 7, 'l', false };
-const opinfo_t OP_BIT_XOR = { "^", NULL, 2, 6, 'l', false };
-const opinfo_t OP_BIT_OR = { "|", NULL, 2, 5, 'l', false };
-
-/// Logical operators
-const opinfo_t OP_AND = { "and", NULL, 2, 4, 'l', false };
-const opinfo_t OP_OR = { "or", NULL, 2, 3, 'l', false };
-
-// Assignment
-const opinfo_t OP_ASSIGN = { "=", NULL, 2, 1, 'r', false };
+/**
+Input stream, character/token stream for parsing functions
 */
-
-/*
-char* srcpos_to_str(srcpos_t pos, char* buf)
+class Input
 {
-    sprintf(buf, "@%d:%d", pos.lineNo, pos.colNo);
-    return buf;
-}
+    /// Internal source string (hosted heap)
+    string str;
 
-input_t input_from_string(string_t* str, string_t* src_name)
-{
-    input_t input;
-    input.str = str;
-    input.idx = 0;
-    input.src_name = src_name;
-    input.pos.lineNo = 0;
-    input.pos.colNo = 0;
-    return input;
-}
+    /// Current index
+    size_t idx;
 
-/// Test if the end of file has been reached
-bool input_eof(input_t* input)
-{
-    assert (input->str != NULL);
-    return (input->idx >= input->str->len);
-}
+    /// Source name string
+    string src_name;
 
-/// Peek at a character from the input
-char input_peek_ch(input_t* input)
-{
-    assert (input->str != NULL);
+    /// Current source position
+    SrcPos pos;
 
-    if (input->idx >= input->str->len)
-        return '\0';
-
-    return input->str->data[input->idx];
-}
-
-/// Read a character from the input
-char input_read_ch(input_t* input)
-{
-    char ch = input_peek_ch(input);
-
-    input->idx++;
-
-    if (ch == '\n')
+    /*
+    input_t input_from_string(string_t* str, string_t* src_name)
     {
-        input->pos.lineNo++;
-        input->pos.colNo = 0;
-    }
-    else
-    {
-        input->pos.colNo++;
+        input_t input;
+        input.str = str;
+        input.idx = 0;
+        input.src_name = src_name;
+        input.pos.lineNo = 0;
+        input.pos.colNo = 0;
+        return input;
     }
 
-    return ch;
-}
-
-/// Try and match a given character in the input
-/// The character is consumed if matched
-bool input_match_ch(input_t* input, char ch)
-{
-    if (input_peek_ch(input) == ch)
+    /// Test if the end of file has been reached
+    bool input_eof(input_t* input)
     {
-        input_read_ch(input);
-        return true;
+        assert (input->str != NULL);
+        return (input->idx >= input->str->len);
     }
 
-    return false;
-}
-
-/// Try and match a given string in the input
-/// The string is consumed if matched
-bool input_match_str(input_t* input, char* str)
-{
-    input_t sub = *input;
-
-    for (;;)
+    /// Peek at a character from the input
+    char input_peek_ch(input_t* input)
     {
-        if (*str == '\0')
+        assert (input->str != NULL);
+
+        if (input->idx >= input->str->len)
+            return '\0';
+
+        return input->str->data[input->idx];
+    }
+
+    /// Read a character from the input
+    char input_read_ch(input_t* input)
+    {
+        char ch = input_peek_ch(input);
+
+        input->idx++;
+
+        if (ch == '\n')
         {
-            *input = sub;
+            input->pos.lineNo++;
+            input->pos.colNo = 0;
+        }
+        else
+        {
+            input->pos.colNo++;
+        }
+
+        return ch;
+    }
+
+    /// Try and match a given character in the input
+    /// The character is consumed if matched
+    bool input_match_ch(input_t* input, char ch)
+    {
+        if (input_peek_ch(input) == ch)
+        {
+            input_read_ch(input);
             return true;
         }
 
-        if (input_eof(&sub))
-        {
-            return false;
-        }
-
-        if (!input_match_ch(&sub, *str))
-        {
-            return false;
-        }
-
-        str++;
+        return false;
     }
-}
 
-/// Consume whitespace and comments
-void input_eat_ws(input_t* input)
-{
-    // Until the end of the whitespace
-    for (;;)
+    /// Try and match a given string in the input
+    /// The string is consumed if matched
+    bool input_match_str(input_t* input, char* str)
     {
-        // Consume whitespace characters
-        if (isspace(input_peek_ch(input)))
-        {
-            input_read_ch(input);
-            continue;
-        }
+        input_t sub = *input;
 
-        // If this is a single-line comment
-        if (input_match_str(input, "//"))
+        for (;;)
         {
-            // Read until and end of line is reached
-            for (;;)
+            if (*str == '\0')
             {
-                char ch = input_read_ch(input);
-                if (ch == '\n' || ch == '\0')
-                    break;
+                *input = sub;
+                return true;
             }
 
-            continue;
-        }
-
-        // If this is a multi-line comment
-        if (input_match_str(input, "/*"))
-        {
-            // Read until the end of the comment
-            for (;;)
+            if (input_eof(&sub))
             {
-                char ch = input_read_ch(input);
-                if (ch == '*' && input_match_ch(input, '/'))
-                    break;
+                return false;
             }
 
-            continue;
-        }
+            if (!input_match_ch(&sub, *str))
+            {
+                return false;
+            }
 
-        // This isn't whitespace, stop
-        break;
+            str++;
+        }
     }
+
+    /// Consume whitespace and comments
+    void input_eat_ws(input_t* input)
+    {
+        // Until the end of the whitespace
+        for (;;)
+        {
+            // Consume whitespace characters
+            if (isspace(input_peek_ch(input)))
+            {
+                input_read_ch(input);
+                continue;
+            }
+
+            // If this is a single-line comment
+            if (input_match_str(input, "//"))
+            {
+                // Read until and end of line is reached
+                for (;;)
+                {
+                    char ch = input_read_ch(input);
+                    if (ch == '\n' || ch == '\0')
+                        break;
+                }
+
+                continue;
+            }
+
+            // If this is a multi-line comment
+            if (input_match_str(input, "/*"))
+            {
+                // Read until the end of the comment
+                for (;;)
+                {
+                    char ch = input_read_ch(input);
+                    if (ch == '*' && input_match_ch(input, '/'))
+                        break;
+                }
+
+                continue;
+            }
+
+            // This isn't whitespace, stop
+            break;
+        }
+    }
+    */
 }
 
-/// Allocate a parse error node
-heapptr_t ast_error_alloc(input_t* input, const char* error_str)
-{
-    ast_error_t* node = (ast_error_t*)vm_alloc(
-        sizeof(ast_error_t),
-        SHAPE_AST_ERROR
-    );
 
-    node->src_pos = input->pos;
-    node->error_str = vm_get_cstr(error_str);
 
-    assert (ast_error((heapptr_t)node));
 
-    return (heapptr_t)node;
-}
 
-bool ast_error(heapptr_t node)
-{
-    assert (node != NULL);
-    return get_shape(node) == SHAPE_AST_ERROR;
-}
 
+
+
+
+
+
+
+
+
+
+
+/*
 /// Allocate an integer node
 heapptr_t ast_const_alloc(value_t val)
 {
