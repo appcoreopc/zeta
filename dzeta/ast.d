@@ -196,25 +196,25 @@ class ConstExpr : ASTExpr
 /**
 Variable reference node
 */
-/*
-typedef struct
+class RefExpr : ASTExpr
 {
-    /// Stack or mutable cell index
-    uint32_t idx;
-
     /// Identifier name string
-    string_t* name;
+    string name;
 
     /// Resolved declaration, null if global
-    ast_decl_t* decl;
+    //ast_decl_t* decl;
 
-} ast_ref_t;
-*/
+    this(string name, SrcPos pos = null)
+    {
+        super(pos);
+        this.name = name;
+    }
+}
 
 /**
 Variable/constant declaration node
 */
-class DeclExpr
+class DeclExpr : ASTExpr
 {
     /// Constant flag
     bool cst;
@@ -227,101 +227,123 @@ class DeclExpr
 
     /// Function the declaration belongs to
     FunExpr fun;
+
+    this(SrcPos pos = null)
+    {
+        super(pos);
+    }
 }
 
 /**
 Sequence or block of expressions
 */
-/*
-typedef struct
+class SeqExpr : ASTExpr
 {
     // List of expressions
-    array_t* expr_list;
+    ASTExpr exprList;
 
-} ast_seq_t;
-*/
+    this(SrcPos pos = null)
+    {
+        super(pos);
+    }
+}
 
 /**
 If expression AST node
 */
-/*
-typedef struct
+class IfExpr : ASTExpr
 {
-    heapptr_t test_expr;
+    ASTExpr testExpr;
+    ASTExpr thenExpr;
+    ASTExpr elseExpr;
 
-    heapptr_t then_expr;
-    heapptr_t else_expr;
-
-} ast_if_t;
-*/
+    this(
+        ASTExpr testExpr,
+        ASTExpr thenExpr,
+        ASTExpr elseExpr,
+        SrcPos pos = null
+    )
+    {
+        super(pos);
+        this.testExpr = testExpr;
+        this.thenExpr = thenExpr;
+        this.elseExpr = elseExpr;
+    }
+}
 
 /**
 Function call AST node
 */
-/*
-typedef struct
+class CallExpr : ASTExpr
 {
     /// Function to be called
-    heapptr_t fun_expr;
+    ASTExpr funExpr;
 
     /// Argument expressions
-    array_t* arg_exprs;
+    ASTExpr[] argExprs;
 
-} ast_call_t;
-*/
+    this(ASTExpr funExpr, ASTExpr[] argExprs, SrcPos pos = null)
+    {
+        super(pos);
+        this.funExpr = funExpr;
+        this.argExprs = argExprs;
+    }
+}
 
 /**
 Function expression node
 */
 class FunExpr : ASTExpr
 {
-    this(/*IdentExpr name, IdentExpr[] params, ASTStmt bodyStmt,*/ SrcPos pos = null)
-    {
-        super(pos);
-    }
-
-    /*
     /// Parent (outer) function
-    struct ast_fun* parent;
+    FunExpr parent = null;
 
     /// Ordered list of parameter declarations
-    array_t* param_decls;
+    DeclExpr[] paramDecls;
 
     /// Set of local variable declarations
     /// Note: this list also includes the parameters
     /// Note: Variables captured by nested functions have the capt flag set
-    array_t* local_decls;
+    //array_t* local_decls;
 
     // Set of local variables escaping into inner/nested functions
-    array_t* esc_locals;
+    //array_t* esc_locals;
 
     /// Set of variables captured from outer/parent functions
     /// Note: this does not include variables from the global object
     /// Note: the value of these are stored in closure objects
-    array_t* free_vars;
+    //array_t* free_vars;
 
     /// Function body expression
-    heapptr_t body_expr;
-    */
+    ASTExpr bodyExpr;
+
+    this(DeclExpr[] paramDecls, ASTExpr bodyExpr, SrcPos pos = null)
+    {
+        super(pos);
+        this.paramDecls = paramDecls;
+        this.bodyExpr = bodyExpr;
+    }
 }
 
 /**
 Object literal
 */
-/*
-typedef struct
+class ObjExpr : ASTExpr
 {
     /// Prototype object expression (may be null)
-    heapptr_t proto_expr;
+    ASTExpr protoExpr;
 
     /// Property name strings
-    array_t* name_strs;
+    string[] nameStrs;
 
     /// Property value expressions
-    array_t* val_exprs;
+    ASTExpr[] valExprs;
 
-} ast_obj_t;
-*/
+    this(SrcPos pos = null)
+    {
+        super(pos);
+    }
+}
 
 // Maximum operator precedence
 const int MAX_PREC = 16;
