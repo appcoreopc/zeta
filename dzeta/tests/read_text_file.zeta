@@ -1,0 +1,5 @@
+let str = readFile('tests/read_text_file.zeta')
+
+assert (str.length > 0, 'length is zero');
+assert (str.length < 2048, 'length is invalid');
+

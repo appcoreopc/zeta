@@ -31,4 +31,5 @@
 # Debug files
 *.dSYM/
 
-source/zeta
+dzeta/zeta
+

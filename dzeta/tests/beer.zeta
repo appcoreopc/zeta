@@ -1,0 +1,34 @@
+let bottles = fun (n)
+{
+    if n == 0 then
+    {
+        print("No more bottles")
+    }
+    else if n == 1 then
+    {
+        print("One bottle")
+    }
+    else
+    {
+        print(n) print(" bottles")
+    }
+
+    print(" of beer")
+}
+
+let beer = fun (n)
+{
+    if n > 0 then
+    {
+        bottles(n) println(" on the wall")
+        bottles(n) println('')
+        println("Take one down, pass it around")
+        bottles(n-1) println(" on the wall")
+        println('')
+
+        beer(n-1)
+    }
+}
+
+beer(99)
+

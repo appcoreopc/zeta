@@ -1,5 +1,4 @@
-language: c
-compiler: gcc
+language: d
 
 # Package installation
 before_install:
@@ -18,5 +17,6 @@ branches:
         - master
 
 # Build a test binary and run tests
-script: make -C source test_valgrind
+script: make -C source test
+
 
