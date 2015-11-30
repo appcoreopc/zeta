@@ -58,27 +58,15 @@ class SrcPos
 }
 
 /**
-Base class for all AST nodes
+Base class for all AST nodes/expressions
 */
-class ASTNode
+class ASTExpr
 {
     SrcPos pos;
 
-    // Force subclasses to set the position
-    this(SrcPos pos)
-    { 
-        this.pos = pos; 
-    }
-}
-
-/**
-Base class for AST expressions
-*/
-class ASTExpr : ASTNode
-{
-    this(SrcPos pos) 
+    private this(SrcPos pos) 
     {
-        super(pos); 
+        this.pos = pos;
     }
 
     /// Get the operator precedence for this expression
@@ -194,15 +182,16 @@ class UnOpExpr : ASTExpr
 Constant value AST node
 Used for integers, floats and booleans
 */
-/*
-typedef struct
+class ConstExpr : ASTExpr
 {
-    shapeidx_t shape;
+    // TODO: value
+    this(SrcPos pos = null)
+    {
+        super(pos);
+    }
 
-    value_t val;
-
-} ast_const_t;
-*/
+    //value_t val;
+}
 
 /**
 Variable reference node
@@ -210,8 +199,6 @@ Variable reference node
 /*
 typedef struct
 {
-    shapeidx_t shape;
-
     /// Stack or mutable cell index
     uint32_t idx;
 
@@ -227,86 +214,20 @@ typedef struct
 /**
 Variable/constant declaration node
 */
-/*
-typedef struct ast_decl
+class DeclExpr
 {
-    shapeidx_t shape;
-
-    /// Local (stack) index
-    uint32_t idx;
-
     /// Constant flag
     bool cst;
 
     /// Escaping variable (captured by a nested function)
-    bool esc;
+    bool esc = false;
 
     /// Identifier name string
-    string_t* name;
+    string name;
 
     /// Function the declaration belongs to
-    ast_fun_t* fun;
-
-} ast_decl_t;
-*/
-
-/**
-Operator information structure
-*/
-/*
-typedef struct
-{
-    /// Operator string (e.g. "+")
-    char* str;
-
-    /// Closing string (optional)
-    char* close_str;
-
-    /// Operator arity
-    int arity;
-
-    /// Precedence level
-    int prec;
-
-    /// Associativity, left-to-right or right-to-left ('l' or 'r')
-    char assoc;
-
-    /// Non-associative flag (e.g.: - and / are not associative)
-    bool nonassoc;
-
-} opinfo_t;
-*/
-
-/**
-Unary operator AST node
-*/
-/*
-typedef struct
-{
-    shapeidx_t shape;
-
-    const opinfo_t* op;
-
-    heapptr_t expr;
-
-} ast_unop_t;
-*/
-
-/**
-Binary operator AST node
-*/
-/*
-typedef struct
-{
-    shapeidx_t shape;
-
-    const opinfo_t* op;
-
-    heapptr_t left_expr;
-    heapptr_t right_expr;
-
-} ast_binop_t;
-*/
+    FunExpr fun;
+}
 
 /**
 Sequence or block of expressions
@@ -314,8 +235,6 @@ Sequence or block of expressions
 /*
 typedef struct
 {
-    shapeidx_t shape;
-
     // List of expressions
     array_t* expr_list;
 
@@ -328,8 +247,6 @@ If expression AST node
 /*
 typedef struct
 {
-    shapeidx_t shape;
-
     heapptr_t test_expr;
 
     heapptr_t then_expr;
@@ -344,8 +261,6 @@ Function call AST node
 /*
 typedef struct
 {
-    shapeidx_t shape;
-
     /// Function to be called
     heapptr_t fun_expr;
 
@@ -396,8 +311,6 @@ Object literal
 /*
 typedef struct
 {
-    shapeidx_t shape;
-
     /// Prototype object expression (may be null)
     heapptr_t proto_expr;
 
@@ -416,46 +329,44 @@ const int MAX_PREC = 16;
 /// Member operator
 immutable OpInfo OP_MEMBER = { ".", null, 2, 16, 'l'};
 
-/*
 /// Array indexing
-const opinfo_t OP_INDEX = { "[", "]", 2, 16, 'l', false };
+immutable OpInfo OP_INDEX = { "[", "]", 2, 16, 'l', false };
 
 /// Function call, variable arity
-const opinfo_t OP_CALL = { "(", ")", -1, 15, 'l', false };
+immutable OpInfo OP_CALL = { "(", ")", -1, 15, 'l', false };
 
 /// Prefix unary operators
-const opinfo_t OP_NEG = { "-", null, 1, 13, 'r', false };
-const opinfo_t OP_NOT = { "not", null, 1, 13, 'r', false };
+immutable OpInfo OP_NEG = { "-", null, 1, 13, 'r', false };
+immutable OpInfo OP_NOT = { "not", null, 1, 13, 'r', false };
 
 /// Binary arithmetic operators
-const opinfo_t OP_MUL = { "*", null, 2, 12, 'l', false };
-const opinfo_t OP_DIV = { "/", null, 2, 12, 'l', true };
-const opinfo_t OP_MOD = { "mod", null, 2, 12, 'l', true };
-const opinfo_t OP_ADD = { "+", null, 2, 11, 'l', false };
-const opinfo_t OP_SUB = { "-", null, 2, 11, 'l', true };
+immutable OpInfo OP_MUL = { "*", null, 2, 12, 'l', false };
+immutable OpInfo OP_DIV = { "/", null, 2, 12, 'l', true };
+immutable OpInfo OP_MOD = { "mod", null, 2, 12, 'l', true };
+immutable OpInfo OP_ADD = { "+", null, 2, 11, 'l', false };
+immutable OpInfo OP_SUB = { "-", null, 2, 11, 'l', true };
 
 /// Relational operators
-const opinfo_t OP_LT = { "<", null, 2, 9, 'l', false };
-const opinfo_t OP_LE = { "<=", null, 2, 9, 'l', false };
-const opinfo_t OP_GT = { ">", null, 2, 9, 'l', false };
-const opinfo_t OP_GE = { ">=", null, 2, 9, 'l', false };
-const opinfo_t OP_IN = { "in", null, 2, 9, 'l', false };
-const opinfo_t OP_INST_OF = { "instanceof", null, 2, 9, 'l', false };
+immutable OpInfo OP_LT = { "<", null, 2, 9, 'l', false };
+immutable OpInfo OP_LE = { "<=", null, 2, 9, 'l', false };
+immutable OpInfo OP_GT = { ">", null, 2, 9, 'l', false };
+immutable OpInfo OP_GE = { ">=", null, 2, 9, 'l', false };
+immutable OpInfo OP_IN = { "in", null, 2, 9, 'l', false };
+immutable OpInfo OP_INST_OF = { "instanceof", null, 2, 9, 'l', false };
 
 /// Equality comparison
-const opinfo_t OP_EQ = { "==", null, 2, 8, 'l', false };
-const opinfo_t OP_NE = { "!=", null, 2, 8, 'l', false };
+immutable OpInfo OP_EQ = { "==", null, 2, 8, 'l', false };
+immutable OpInfo OP_NE = { "!=", null, 2, 8, 'l', false };
 
 /// Bitwise operators
-const opinfo_t OP_BIT_AND = { "&", null, 2, 7, 'l', false };
-const opinfo_t OP_BIT_XOR = { "^", null, 2, 6, 'l', false };
-const opinfo_t OP_BIT_OR = { "|", null, 2, 5, 'l', false };
+immutable OpInfo OP_BIT_AND = { "&", null, 2, 7, 'l', false };
+immutable OpInfo OP_BIT_XOR = { "^", null, 2, 6, 'l', false };
+immutable OpInfo OP_BIT_OR = { "|", null, 2, 5, 'l', false };
 
 /// Logical operators
-const opinfo_t OP_AND = { "and", null, 2, 4, 'l', false };
-const opinfo_t OP_OR = { "or", null, 2, 3, 'l', false };
+immutable OpInfo OP_AND = { "and", null, 2, 4, 'l', false };
+immutable OpInfo OP_OR = { "or", null, 2, 3, 'l', false };
 
 // Assignment
-const opinfo_t OP_ASSIGN = { "=", null, 2, 1, 'r', false };
-*/
+immutable OpInfo OP_ASSIGN = { "=", null, 2, 1, 'r', false };
 
