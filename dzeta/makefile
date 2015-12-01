@@ -6,7 +6,9 @@ main.d      \
 all: debug
 
 test: debug
-	time ./zeta --test
+	dmd -gc -debug -unittest -ofzeta-test $(D_SRCS)
+	./zeta-test --test
+	rm ./zeta-test
 
 debug: *.d
 	dmd -debug -ofzeta $(D_SRCS)

@@ -42,14 +42,14 @@ class SrcPos
     /// Column number
     int col;
 
-    this(string file, int line, int col)
+    this(string file)
     {
         if (file is null)
             file = "";
 
         this.file = file;
-        this.line = line;
-        this.col = col;
+        this.line = 1;
+        this.col = 1;
     }
 
     override string toString()

@@ -4,6 +4,7 @@ import std.file;
 import std.format;
 import std.ascii;
 import std.stdint;
+import std.array;
 import ast;
 
 /**
@@ -48,9 +49,7 @@ class Input
 
         this.str = str;
         this.idx = 0;
-        this.pos.file = srcName;
-        this.pos.line = 1;
-        this.pos.col = 1;
+        this.pos = new SrcPos(srcName);
     }
 
     /// Test if the end of file has been reached
@@ -115,7 +114,7 @@ class Input
                 return true;
             }
 
-            if (this.idx + idx > this.str.length)
+            if (this.idx + idx >= this.str.length)
             {
                 return false;
             }
@@ -259,15 +258,13 @@ Parse a string literal
 */
 StringExpr parseStringLit(Input input, char endCh)
 {
-    size_t len = 0;
+    auto chars = appender!string();
 
     for (;;)
     {
-        /*
         // If this is the end of the input
-        if (input_eof(input))
+        if (input.eof())
         {
-            free(buf);
             throw new ParseError(
                 input,
                 "end of input inside string literal"
@@ -275,7 +272,7 @@ StringExpr parseStringLit(Input input, char endCh)
         }
 
         // Consume this character
-        char ch = input_read_ch(input);
+        char ch = input.readCh();
 
         // If this is the end of the string
         if (ch == endCh)
@@ -286,7 +283,7 @@ StringExpr parseStringLit(Input input, char endCh)
         // If this is an escape sequence
         if (ch == '\\')
         {
-            char esc = input_read_ch(input);
+            char esc = input.readCh();
 
             switch (esc)
             {
@@ -296,26 +293,14 @@ StringExpr parseStringLit(Input input, char endCh)
                 case '0': ch = '\0'; break;
 
                 default:
-                free(buf);
                 throw new ParseError(input, "invalid escape sequence");
             }
         }
 
-        buf[len] = ch;
-        len++;
-
-        if (len == cap)
-        {
-            cap *= 2;
-            char* newBuf = malloc(cap);
-            strncpy(newBuf, buf, len);
-            free(buf);
-        }
-        */
+        chars.put(ch);
     }
 
-    // TODO
-    return null;
+    return new StringExpr(chars.data);
 }
 
 /**
@@ -829,6 +814,8 @@ ASTExpr parseExpr(Input input, int minPrec = 0)
     // If an operator has the mininum precedence or greater, it will
     // associate the current atom to its left and then parse the rhs
 
+    writeln("parseExpr");
+
     // Parse the first atom
     ASTExpr lhs_expr = parseAtom(input);
 
@@ -954,18 +941,13 @@ ASTExpr parseString(string str, string srcName)
 /**
 Parse a source file
 */
-ASTExpr parseFile(const char* file_name)
+ASTExpr parseFile(string fileName)
 {
-    // TODO
-    return null;
+    string src = readText!(string)(fileName);
 
-    /*
-    string src_text = read_file(file_name);
-
-    auto unit_fun = parseString(src_text, file_name);
+    auto unit_fun = parseString(src, fileName);
 
     return unit_fun;
-    */
 }
 
 /// Test that the parsing of a source unit succeeds
@@ -994,8 +976,7 @@ void test_parse_fail(string str)
     exit(-1);
 }
 
-/// Test the functionality of the parser
-void test_parser()
+unittest
 {
     writeln("core parser tests");
 
@@ -1008,10 +989,11 @@ void test_parser()
     test_parse("$foo52");
 
     // Literals
-    test_parse("123");
-    test_parse("0xFF");
-    test_parse("0b101");
+    //test_parse("123");
+    //test_parse("0xFF");
+    //test_parse("0b101");
     test_parse("'abc'");
+    /*
     test_parse("\"double-quoted string!\"");
     test_parse("\"double-quoted string, 'hi'!\"");
     test_parse("'hi' // comment");
@@ -1020,8 +1002,10 @@ void test_parser()
     test_parse("true");
     test_parse("false");
     test_parse_fail("'invalid\\iesc'");
-    test_parse_fail("'str' []");
+    //test_parse_fail("'str' []");
+    */
 
+    /*
     // Array literals
     test_parse("[]");
     test_parse("[1]");
@@ -1038,15 +1022,17 @@ void test_parser()
     test_parse(":{x:3,y:2+z}");
     test_parse(":{x:3,y:2+z,}");
     test_parse_fail(":{,}");
+    */
 
     // Comments
-    test_parse("1 // comment");
-    test_parse("[ 1//comment\n,a ]");
-    test_parse("1 /* comment */ + x");
-    test_parse("1 /* // comment */ + x");
-    test_parse_fail("1 // comment\n#1");
-    test_parse_fail("1 /* */ */");
+    //test_parse("1 // comment");
+    //test_parse("[ 1//comment\n,a ]");
+    //test_parse("1 /* comment */ + x");
+    //test_parse("1 /* // comment */ + x");
+    //test_parse_fail("1 // comment\n#1");
+    //test_parse_fail("1 /* */ */");
 
+    /*
     // Arithmetic expressions
     test_parse("a + b");
     test_parse("a + b + c");
@@ -1160,5 +1146,6 @@ void test_parser()
 
     parseFile("tests/beer.zeta");
     parseFile("tests/list-sum.zeta");
+    */
 }
 
