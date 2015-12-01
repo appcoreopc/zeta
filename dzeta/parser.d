@@ -2,7 +2,8 @@ import std.c.stdlib;
 import std.stdio;
 import std.file;
 import std.format;
-import std.uni;
+import std.ascii;
+import std.stdint;
 import ast;
 
 /**
@@ -175,76 +176,56 @@ class Input
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
 Parse an identifier
 */
-/*
-heapptr_t parse_ident(Input input)
+string parseIdent(Input input)
 {
-    size_t startIdx = input->idx;
+    size_t startIdx = input.idx;
     size_t len = 0;
 
     char firstCh = input.peekCh();
 
     if (firstCh != '_' &&
         firstCh != '$' &&
-        !isalpha(firstCh))
+        !isAlpha(firstCh))
         throw new ParseError(input, "invalid identifier start");;
 
     for (;;)
     {
         char ch = input.peekCh();
 
-        if (!isalnum(ch) && ch != '$' && ch != '_')
+        if (!isAlphaNum(ch) && ch != '$' && ch != '_')
             break;
 
         // Consume this character
-        input_read_ch(input);
+        input.readCh();
         len++;
     }
 
     if (len == 0)
         throw new ParseError(input, "invalid identifier");
 
-    string_t* str = string_alloc(len);
-
     // Copy the characters
-    strncpy(str->data, input->str->data + startIdx, len);
-    str->data[len] = '\0';
-
-    return (heapptr_t)vm_get_tbl_str(str);
+    return input.str[startIdx..startIdx+len];
 }
-*/
 
 /**
 Parse a number (integer or floating-point)
 Note: floating-point numbers are not supported by the core parser
 */
-/*
-heapptr_t parseNumber(Input input)
+ASTExpr parseNumber(Input input)
 {
+    // TODO:
+    return null;
+
     char* numStart;
 
     int64_t intVal;
 
-    char* endInt = NULL;
+    char* endInt = null;
 
+    /*
     // Hexadecimal literals
     if (input.matchStr("0x"))
     {
@@ -265,25 +246,24 @@ heapptr_t parseNumber(Input input)
         numStart = input->str->data + input->idx;
         intVal = strtol(numStart, &endInt, 10);
     }
+    */
 
+    /*
     input->idx += endInt - numStart;
     return (heapptr_t)ast_const_alloc(value_from_int64(intVal));
+    */
 }
-*/
 
 /**
 Parse a string literal
 */
-/*
-heapptr_t parse_string_lit(Input input, char endCh)
+StringExpr parseStringLit(Input input, char endCh)
 {
     size_t len = 0;
-    size_t cap = 64;
-
-    char* buf = malloc(cap);
 
     for (;;)
     {
+        /*
         // If this is the end of the input
         if (input_eof(input))
         {
@@ -331,18 +311,12 @@ heapptr_t parse_string_lit(Input input, char endCh)
             strncpy(newBuf, buf, len);
             free(buf);
         }
+        */
     }
 
-    buf[len] = '\0';
-
-    // Get the interned version of this string
-    string_t* str = vm_get_cstr(buf);
-
-    free(buf);
-
-    return (heapptr_t)str;
+    // TODO
+    return null;
 }
-*/
 
 /**
 Parse an if expression
@@ -370,25 +344,19 @@ ASTExpr parseIfExpr(Input input)
     }
     else
     {
-        // TODO
-        assert (false);
-        //else_expr = ast_const_alloc(VAL_FALSE);
+        else_expr = new FalseExpr();
     }
 
-    // TODO:
-    assert (false);
-    //return ast_if_alloc(test_expr, then_expr, else_expr);
+    return new IfExpr(test_expr, then_expr, else_expr);
 }
 
 /**
 Parse a list of expressions
 */
-/*
-ASTExpr parse_expr_list(Input input, char endCh)
+ASTExpr[] parseExprList(Input input, char endCh)
 {
-    // Allocate an array with an initial capacity
-    array_t* arr = array_alloc(4);
-
+    ASTExpr[] arr;
+ 
     // Until the end of the list
     for (;;)
     {
@@ -402,16 +370,10 @@ ASTExpr parse_expr_list(Input input, char endCh)
         }
 
         // Parse an expression
-        ASTExpr expr = parseExpr(input);
+        auto expr = parseExpr(input);
 
-        // The expression must not fail to parse
-        if (ast_error(expr))
-        {
-            return expr;
-        }
-
-        // Write the expression to the array
-        array_set_obj(arr, arr->len, expr);
+        // Add the expression to the array
+        arr ~= expr;        
 
         // Read whitespace
         input.eatWS();
@@ -429,18 +391,15 @@ ASTExpr parse_expr_list(Input input, char endCh)
         }
     }
 
-    return (heapptr_t)arr;
+    return arr;
 }
-*/
 
 /**
 Parse a sequence expression
 */
-/*
-ASTExpr parse_seq_expr(Input input, char endCh)
+ASTExpr parseSeqExpr(Input input, char endCh)
 {
-    // Allocate an array with an initial capacity
-    array_t* arr = array_alloc(4);
+    ASTExpr[] arr;
 
     // Until the end of the list
     for (;;)
@@ -455,16 +414,10 @@ ASTExpr parse_seq_expr(Input input, char endCh)
         }
 
         // Parse an expression
-        ASTExpr expr = parseExpr(input);
+        auto expr = parseExpr(input);
 
-        // The expression must not fail to parse
-        if (ast_error(expr))
-        {
-            return expr;
-        }
-
-        // Write the expression to the array
-        array_set_obj(arr, arr->len, expr);
+        // Add the expression to the array
+        arr ~= expr;
 
         // Read whitespace
         input.eatWS();
@@ -481,16 +434,14 @@ ASTExpr parse_seq_expr(Input input, char endCh)
         }
     }
 
-    return ast_seq_alloc(arr);
+    return new SeqExpr(arr);
 }
-*/
 
 /**
 Parse a function (closure) expression
 fun (x,y,z) <body_expr>
 */
-/*
-ASTExpr parse_fun_expr(Input input)
+ASTExpr parseFunExpr(Input input)
 {
     input.eatWS();
     if (!input.matchCh('('))
@@ -499,7 +450,7 @@ ASTExpr parse_fun_expr(Input input)
     }
 
     // Allocate an array for the parameter declarations
-    array_t* param_decls = array_alloc(4);
+    DeclExpr[] paramDecls;
 
     // Until the end of the list
     for (;;)
@@ -512,15 +463,15 @@ ASTExpr parse_fun_expr(Input input)
             break;
 
         // Parse an identifier
-        ASTExpr ident = parse_ident(input);
+        auto ident = parseIdent(input);
 
-        if (ast_error(ident))
-            return ident;
-
+        // TODO
+        /*
         ASTExpr decl = ast_decl_alloc(ident, false);
 
         // Write the expression to the array
         array_set_obj(param_decls, param_decls->len, decl);
+        */
 
         // Read whitespace
         input.eatWS();
@@ -537,26 +488,19 @@ ASTExpr parse_fun_expr(Input input)
     }
 
     // Parse the function body
-    ASTExpr body_expr = parseExpr(input);
+    auto bodyExpr = parseExpr(input);
 
-    if (ast_error(body_expr))
-    {
-        return body_expr;
-    }
-
-    return (heapptr_t)ast_fun_alloc(param_decls, body_expr);
+    return new FunExpr(paramDecls, bodyExpr);
 }
-*/
 
 /**
 Parse an object literal expression
 fun (x,y,z) <body_expr>
 */
-/*
 ASTExpr parseObjExpr(Input input)
 {
-    array_t* name_strs = array_alloc(4);
-    array_t* val_exprs = array_alloc(4);
+    string[] nameStrs;
+    ASTExpr[] valExprs;
 
     // Until the end of the list
     for (;;)
@@ -571,12 +515,7 @@ ASTExpr parseObjExpr(Input input)
         }
 
         // Parse the property name
-        ASTExpr ident = parse_ident(input);
-
-        if (ast_error(ident))
-        {
-            return ident;
-        }
+        auto ident = parseIdent(input);
 
         input.eatWS();
         if (!input.matchCh(':'))
@@ -587,8 +526,8 @@ ASTExpr parseObjExpr(Input input)
         // Parse an expression
         ASTExpr expr = parseExpr(input);
 
-        array_set(name_strs, name_strs->len, value_from_heapptr(ident, TAG_STRING));
-        array_set_obj(val_exprs, val_exprs->len, expr);
+        nameStrs ~= ident;
+        valExprs ~= expr;
 
         // If this is the end of the list
         input.eatWS();
@@ -604,9 +543,8 @@ ASTExpr parseObjExpr(Input input)
         }
     }
 
-    return ast_obj_alloc(NULL, name_strs, val_exprs);
+    return new ObjExpr(nameStrs, valExprs);
 }
-*/
 
 /**
 Try to match an operator in the input
@@ -727,7 +665,7 @@ ASTExpr parse_var_decl(Input input)
 {
     input.eatWS();
 
-    auto ident = parse_ident(input);
+    auto ident = parseIdent(input);
 
     return ast_decl_alloc(ident, false);
 }
@@ -743,12 +681,7 @@ ASTExpr parse_cst_decl(Input input)
 {
     input.eatWS();
 
-    ASTExpr ident = parse_ident(input);
-
-    if (ast_error(ident))
-    {
-        throw new ParseError(input, "expected identifier in variable expression");
-    }
+    auto ident = parseIdent(input);
 
     input.eatWS();
 
@@ -782,30 +715,28 @@ ASTExpr parseAtom(Input input)
     // Consume whitespace
     input.eatWS();
 
-    // TODO: bring isDigit from Higgs lexer
-    /*
     // Numerical constant
     if (isDigit(input.peekCh()))
     {
         return parseNumber(input);
     }
-    */
 
-    /*
     // String literal
     if (input.matchCh('\''))
     {
-        return parse_string_lit(input, '\'');
+        return parseStringLit(input, '\'');
     }
     if (input.matchCh('"'))
     {
-        return parse_string_lit(input, '"');
+        return parseStringLit(input, '"');
     }
 
     // Array literal
     if (input.matchCh('['))
     {
-        return parse_expr_list(input, ']');
+        // FIXME: need to create an ArrayExpr object
+        assert (false);
+        //return parseExprList(input, ']');
     }
 
     // Object literal
@@ -818,10 +749,6 @@ ASTExpr parseAtom(Input input)
     if (input.matchCh('('))
     {
         ASTExpr expr = parseExpr(input);
-        if (ast_error(expr))
-        {
-            throw new ParseError(input, "expected expression after '('");
-        }
 
         if (!input.matchCh(')'))
         {
@@ -834,27 +761,20 @@ ASTExpr parseAtom(Input input)
     // Sequence/block expression (i.e { a; b; c }
     if (input.matchCh('{'))
     {
-        return parse_seq_expr(input, '}');
+        return parseSeqExpr(input, '}');
     }
 
     // Try matching a right-associative (prefix) unary operators
-    const opinfo_t* op = matchOp(input, 0, true);
-
-    // If a matching operator was found
-    if (op)
+    if (auto op = matchOp(input, 0, true))
     {
         ASTExpr expr = parseAtom(input);
-        if (ast_error(expr))
-        {
-            return expr;
-        }
-
-        return (heapptr_t)ast_unop_alloc(op, expr);
+        return new UnOpExpr(op, expr);
     }
 
     // Identifier
-    if (isalnum(input.peekCh()))
+    if (isAlphaNum(input.peekCh()))
     {
+        /*
         // Variable declaration
         if (input.matchStr("var"))
             return parse_var_decl(input);
@@ -862,6 +782,7 @@ ASTExpr parseAtom(Input input)
         // Constant declaration
         if (input.matchStr("let"))
             return parse_cst_decl(input);
+        */
 
         // If expression
         if (input.matchStr("if"))
@@ -869,23 +790,22 @@ ASTExpr parseAtom(Input input)
 
         // Function expression
         if (input.matchStr("fun"))
-            return parse_fun_expr(input);
+            return parseFunExpr(input);
 
         // true and false boolean constants
         if (input.matchStr("true"))
-            return (heapptr_t)ast_const_alloc(VAL_TRUE);
+            return new TrueExpr();
         if (input.matchStr("false"))
-            return (heapptr_t)ast_const_alloc(VAL_FALSE);
+            return new FalseExpr();
     }
 
     // Identifiers beginning with non-alphanumeric characters
     if (input.peekCh() == '_' ||
         input.peekCh() == '$' ||
-        isalpha(input.peekCh()))
+        isAlpha(input.peekCh()))
     {
-        return ast_ref_alloc(parse_ident(input));
+        return new RefExpr(parseIdent(input));
     }
-    */
 
     // Parsing failed
     throw new ParseError(input, "invalid expression");
@@ -927,84 +847,80 @@ ASTExpr parseExpr(Input input, int minPrec = 0)
         if (op == null)
             break;
 
-        /*
         // Compute the minimal precedence for the recursive call (if any)
         int nextMinPrec;
-        if (op->assoc == 'l')
+        if (op.assoc == 'l')
         {
-            if (op->close_str)
+            if (op.closeStr)
                 nextMinPrec = 0;
             else
-                nextMinPrec = (op->prec + 1);
+                nextMinPrec = (op.prec + 1);
         }
         else
         {
-            nextMinPrec = op->prec;
+            nextMinPrec = op.prec;
         }
 
         // If this is a function call expression
         if (op == &OP_CALL)
         {
             // Parse the argument list and create the call expression
-            heapptr_t arg_exprs = parse_expr_list(input, ')');
-
-            lhs_expr = ast_call_alloc(lhs_expr, (array_t*)arg_exprs);
+            auto arg_exprs = parseExprList(input, ')');
+            lhs_expr = new CallExpr(lhs_expr, arg_exprs);
         }
 
         // If this is a member expression
         else if (op == &OP_MEMBER)
         {
             // Parse the identifier string
-            heapptr_t ident = parse_ident(input);
+            auto ident = parseIdent(input);
 
             // Produce an indexing expression
-            lhs_expr = ast_binop_alloc(
+            lhs_expr = new BinOpExpr(
                 op,
                 lhs_expr,
-                ident//, lhs_expr.pos
+                new StringExpr(ident),
+                input.pos
             );
         }
 
         // If this is a binary operator
-        else if (op->arity == 2)
+        else if (op.arity == 2)
         {
             // Recursively parse the rhs
-            heapptr_t rhs_expr = parse_expr_prec(input, nextMinPrec);
+            auto rhs_expr = parseExpr(input, nextMinPrec);
 
             // Create a new parent node for the expressions
-            lhs_expr = ast_binop_alloc(
+            lhs_expr = new BinOpExpr(
                 op,
                 lhs_expr,
-                rhs_expr//, lhs_expr.pos
+                rhs_expr,
+                input.pos
             );
 
             // If specified, match the operator closing string
-            if (op->close_str && !input.matchStr(op->close_str))
+            if (op.closeStr && !input.matchStr(op.closeStr))
                 throw new ParseError(input, "expected operator closing");
         }
 
         // If this is a unary operator
-        else if (op->arity == 1)
+        else if (op.arity == 1)
         {
-            if (op->assoc != 'l')
+            if (op.assoc != 'l')
             {
                 throw new ParseError(input, "invalid operator");
             }
 
-            printf("postfix unary operator\n");
-            assert (false);
-
             // Update lhs with the new value
-            //lhs_expr = new UnOpExpr(op, lhs_expr, lhs_expr.pos);
+            lhs_expr = new UnOpExpr(op, lhs_expr, lhs_expr.pos);
         }
 
         else
         {
             // Unhandled operator
-            printf("operator not handled correctly: %s\n", op->str);
+            writefln("operator not handled correctly: %s", op.str);
             assert (false);
         }
-        */
     }
 
     // Return the parsed expression
@@ -1016,17 +932,10 @@ Parse a source unit from an input object
 */
 ASTExpr parseUnit(Input input)
 {
-    assert (false);
-
-    /*
     // Create a sequence expression from the expression list
-    heapptr_t seq_expr = parse_seq_expr(input, '\0');
+    auto seqExpr = parseSeqExpr(input, '\0');
 
-    // Create an empty array for the parameter list
-    array_t* param_list = array_alloc(0);
-
-    return ast_fun_alloc(param_list, seq_expr);
-    */
+    return new FunExpr([], seqExpr);
 }
 
 /**

@@ -1,5 +1,6 @@
 import std.format;
 import std.conv;
+import std.stdint;
 
 /**
 Operator information structure
@@ -75,6 +76,102 @@ class ASTExpr
         // By default, maximum precedence (atomic)
         return MAX_PREC;
     }
+}
+
+/**
+True boolean constant expression
+*/
+class TrueExpr : ASTExpr
+{
+    this(SrcPos pos = null)
+    {
+        super(pos);
+    }
+
+    override string toString()
+    {
+        return "true";
+    }
+}
+
+/**
+False boolean constant expression
+*/
+class FalseExpr : ASTExpr
+{
+    this(SrcPos pos = null)
+    {
+        super(pos);
+    }
+
+    override string toString()
+    {
+        return "false";
+    }
+}
+
+/**
+Integer constant expression
+*/
+class IntExpr : ASTExpr
+{
+    long val;
+
+    this(long val, SrcPos pos = null)
+    {
+        super(pos);
+        this.val = val;
+    }
+
+    override string toString()
+    {
+        return to!(string)(val);
+    }
+}
+
+/**
+Floating-point constant expression
+*/
+class FloatExpr : ASTExpr
+{
+    double val;
+
+    this(double val, SrcPos pos = null)
+    {
+        super(pos);
+        this.val = val;
+    }
+
+    /*
+    override string toString()
+    {
+        if (floor(val) == val)
+            return format("%.1f", val);
+        else
+            return format("%G", val);
+    }
+    */
+}
+
+/**
+String-constant expression
+*/
+class StringExpr : ASTExpr
+{
+    string val;
+
+    this(string val, SrcPos pos = null)
+    {
+        super(pos);
+        this.val = val;
+    }
+
+    /*
+    override string toString()
+    {
+        return "\"" ~ to!string(escapeJSString(val)) ~ "\"";
+    }
+    */
 }
 
 /**
@@ -178,6 +275,7 @@ class UnOpExpr : ASTExpr
     }
 }
 
+// TODO: may want to replace ConstExpr with IntExpr, StringExpr, etc
 /**
 Constant value AST node
 Used for integers, floats and booleans
@@ -240,11 +338,12 @@ Sequence or block of expressions
 class SeqExpr : ASTExpr
 {
     // List of expressions
-    ASTExpr exprList;
+    ASTExpr[] exprList;
 
-    this(SrcPos pos = null)
+    this(ASTExpr[] exprList, SrcPos pos = null)
     {
         super(pos);
+        this.exprList = exprList;
     }
 }
 
@@ -339,9 +438,11 @@ class ObjExpr : ASTExpr
     /// Property value expressions
     ASTExpr[] valExprs;
 
-    this(SrcPos pos = null)
+    this(string[] nameStrs, ASTExpr[] valExprs, SrcPos pos = null)
     {
         super(pos);
+        this.nameStrs = nameStrs;
+        this.valExprs = valExprs;
     }
 }
 
