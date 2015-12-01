@@ -108,22 +108,14 @@ class Input
 
         for (; idx < str.length; idx++)
         {
-            if (idx >= str.length)
-            {
-                this.idx += str.length;
-                return true;
-            }
-
             if (this.idx + idx >= this.str.length)
-            {
                 return false;
-            }
 
             if (str[idx] != this.str[this.idx + idx])
-            {
                 return false;
-            }
         }
+
+        this.idx += str.length;
 
         return true;
     }
@@ -645,24 +637,20 @@ Operator matchOp(Input input, int minPrec, bool preUnary)
 Parse a variable declaration
 Note: assumes that the "var" keyword has already been matched
 */
-/*
-ASTExpr parse_var_decl(Input input)
+ASTExpr parseVarDecl(Input input)
 {
     input.eatWS();
 
     auto ident = parseIdent(input);
 
-    return ast_decl_alloc(ident, false);
+    return new DeclExpr(ident, false);
 }
-*/
 
-// TODO: rename to parse_let_decl
 /**
 Parse a constant declaration
 Note: assumes that the "let" keyword has already been matched
 */
-/*
-ASTExpr parse_cst_decl(Input input)
+ASTExpr parseLetDecl(Input input)
 {
     input.eatWS();
 
@@ -678,19 +666,13 @@ ASTExpr parse_cst_decl(Input input)
 
     ASTExpr val = parseExpr(input);
 
-    if (ast_error(val))
-    {
-        return val;
-    }
-
     // Create and return an assignment expression
-    return ast_binop_alloc(
+    return new BinOpExpr(
         &OP_ASSIGN,
-        ast_decl_alloc(ident, true),
+        new DeclExpr(ident, true),
         val
     );
 }
-*/
 
 /**
 Parse an atomic expression
@@ -759,15 +741,13 @@ ASTExpr parseAtom(Input input)
     // Identifier
     if (isAlphaNum(input.peekCh()))
     {
-        /*
         // Variable declaration
         if (input.matchStr("var"))
-            return parse_var_decl(input);
+            return parseVarDecl(input);
 
         // Constant declaration
         if (input.matchStr("let"))
-            return parse_cst_decl(input);
-        */
+            return parseLetDecl(input);
 
         // If expression
         if (input.matchStr("if"))
@@ -814,7 +794,7 @@ ASTExpr parseExpr(Input input, int minPrec = 0)
     // If an operator has the mininum precedence or greater, it will
     // associate the current atom to its left and then parse the rhs
 
-    writeln("parseExpr");
+    //writeln("parseExpr");
 
     // Parse the first atom
     ASTExpr lhs_expr = parseAtom(input);
@@ -993,7 +973,6 @@ unittest
     //test_parse("0xFF");
     //test_parse("0b101");
     test_parse("'abc'");
-    /*
     test_parse("\"double-quoted string!\"");
     test_parse("\"double-quoted string, 'hi'!\"");
     test_parse("'hi' // comment");
@@ -1003,7 +982,6 @@ unittest
     test_parse("false");
     test_parse_fail("'invalid\\iesc'");
     //test_parse_fail("'str' []");
-    */
 
     /*
     // Array literals
@@ -1032,7 +1010,6 @@ unittest
     //test_parse_fail("1 // comment\n#1");
     //test_parse_fail("1 /* */ */");
 
-    /*
     // Arithmetic expressions
     test_parse("a + b");
     test_parse("a + b + c");
@@ -1053,6 +1030,7 @@ unittest
     test_parse_fail("(a + b))");
     test_parse_fail("((a + b)");
 
+    /*
     // Member expression
     test_parse("a.b");
     test_parse("a.b + c");

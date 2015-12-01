@@ -314,21 +314,23 @@ Variable/constant declaration node
 */
 class DeclExpr : ASTExpr
 {
-    /// Constant flag
-    bool cst;
-
-    /// Escaping variable (captured by a nested function)
-    bool esc = false;
-
     /// Identifier name string
     string name;
 
-    /// Function the declaration belongs to
-    FunExpr fun;
+    /// Function the declaration belongs to (resolved later)
+    FunExpr fun = null;
 
-    this(SrcPos pos = null)
+    /// Escaping variable (captured by nested function, resolved later)
+    bool esc = false;
+
+    /// Constant flag
+    bool cst;
+
+    this(string name, bool cst, SrcPos pos = null)
     {
         super(pos);
+        this.name = name;
+        this.cst = cst;
     }
 }
 
