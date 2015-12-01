@@ -207,42 +207,37 @@ Note: floating-point numbers are not supported by the core parser
 */
 ASTExpr parseNumber(Input input)
 {
-    // TODO:
-    return null;
+    import core.stdc.stdlib;
 
-    char* numStart;
+    const(char)* numStart;
 
     int64_t intVal;
 
     char* endInt = null;
 
-    /*
     // Hexadecimal literals
     if (input.matchStr("0x"))
     {
-        numStart = input->str->data + input->idx;
+        numStart = &input.str[input.idx];
         intVal = strtol(numStart, &endInt, 16);
     }
 
     // Binary literals
     else if (input.matchStr("0b"))
     {
-        numStart = input->str->data + input->idx;
+        numStart = &input.str[input.idx];
         intVal = strtol(numStart, &endInt, 2);
     }
 
     // Decimal literals
     else
     {
-        numStart = input->str->data + input->idx;
+        numStart = &input.str[input.idx];
         intVal = strtol(numStart, &endInt, 10);
     }
-    */
 
-    /*
-    input->idx += endInt - numStart;
-    return (heapptr_t)ast_const_alloc(value_from_int64(intVal));
-    */
+    input.idx += endInt - numStart;
+    return new IntExpr(intVal);
 }
 
 /**
@@ -969,9 +964,9 @@ unittest
     test_parse("$foo52");
 
     // Literals
-    //test_parse("123");
-    //test_parse("0xFF");
-    //test_parse("0b101");
+    test_parse("123");
+    test_parse("0xFF");
+    test_parse("0b101");
     test_parse("'abc'");
     test_parse("\"double-quoted string!\"");
     test_parse("\"double-quoted string, 'hi'!\"");
@@ -981,7 +976,7 @@ unittest
     test_parse("true");
     test_parse("false");
     test_parse_fail("'invalid\\iesc'");
-    //test_parse_fail("'str' []");
+    test_parse_fail("'str' []");
 
     /*
     // Array literals
@@ -1030,7 +1025,6 @@ unittest
     test_parse_fail("(a + b))");
     test_parse_fail("((a + b)");
 
-    /*
     // Member expression
     test_parse("a.b");
     test_parse("a.b + c");
@@ -1038,6 +1032,7 @@ unittest
     test_parse("$api.file.v2.fopen");
     test_parse_fail("a.'b'");
 
+    /*
     // Array indexing
     test_parse("a[0]");
     test_parse("a[b]");
@@ -1045,6 +1040,7 @@ unittest
     test_parse("a[2*b+1]");
     test_parse_fail("a[]");
     test_parse_fail("a[0 1]");
+    */
 
     // If expression
     test_parse("if x then y");
@@ -1052,7 +1048,7 @@ unittest
     test_parse("if x then y else z");
     test_parse("if x then a+c else d");
     test_parse("if x then a else b");
-    test_parse("if a instanceof b then true");
+    /*test_parse("if a instanceof b then true");
     test_parse("if 'a' in b or 'c' in b then y");
     test_parse("if not x then y else z");
     test_parse("if x and not x then true else false");
@@ -1115,6 +1111,7 @@ unittest
     test_parse_fail("{ a, }");
     test_parse_fail("{ a, b }");
     test_parse_fail("fun foo () { a, }");
+    */
 
     // Regressions
     test_parse_fail("'a' <'");
@@ -1122,8 +1119,7 @@ unittest
     //parse_check_error(parse_file("global.zeta"));
     //parse_check_error(parse_file("parser.zeta"));
 
-    parseFile("tests/beer.zeta");
-    parseFile("tests/list-sum.zeta");
-    */
+    //parseFile("tests/beer.zeta");
+    //parseFile("tests/list-sum.zeta");
 }
 
