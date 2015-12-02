@@ -2,6 +2,8 @@ D_SRCS=     \
 runtime.d   \
 ast.d       \
 parser.d    \
+vars.d      \
+codegen.d   \
 main.d      \
 
 all: debug
