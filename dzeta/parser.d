@@ -100,9 +100,8 @@ class Input
         return false;
     }
 
-    /// Try and match a given string in the input
-    /// The string is consumed if matched
-    bool matchStr(string str)
+    /// Peek to check if a string is in the input
+    bool peekStr(string str)
     {
         size_t idx = 0;
 
@@ -115,9 +114,20 @@ class Input
                 return false;
         }
 
-        this.idx += str.length;
-
         return true;
+    }
+
+    /// Try and match a given string in the input
+    /// The string is consumed if matched
+    bool matchStr(string str)
+    {
+        if (peekStr(str))
+        {
+            this.idx += str.length;
+            return true;
+        }
+
+        return false;
     }
 
     /// Consume whitespace and comments
@@ -523,9 +533,6 @@ Try to match an operator in the input
 */
 Operator matchOp(Input input, int minPrec, bool preUnary)
 {
-    // TODO
-    //input_t beforeOp = *input;
-
     char ch = input.peekCh();
 
     Operator op = null;
@@ -535,94 +542,105 @@ Operator matchOp(Input input, int minPrec, bool preUnary)
     switch (ch)
     {
         case '.':
-        if (input.matchCh('.'))     op = &OP_MEMBER;
+        op = &OP_MEMBER;
         break;
 
         case '[':
-        if (input.matchCh('['))     op = &OP_INDEX;
+        op = &OP_INDEX;
         break;
 
         case '(':
-        if (input.matchCh('('))     op = &OP_CALL;
-        break;
-
-        case 'n':
-        if (input.matchStr("not"))  op = &OP_NOT;
+        op = &OP_CALL;
         break;
 
         case '*':
-        if (input.matchCh('*'))     op = &OP_MUL;
+        op = &OP_MUL;
         break;
 
         case '/':
-        if (input.matchCh('/'))     op = &OP_DIV;
+        op = &OP_DIV;
         break;
 
         case 'm':
-        if (input.matchStr("mod"))  op = &OP_MOD;
+        if (input.peekStr("mod"))
+            op = &OP_MOD;
         break;
 
         case '+':
-        if (input.matchCh('+'))     op = &OP_ADD;
+        op = &OP_ADD;
         break;
 
         case '-':
-        if (input.matchCh('-'))
-            op = preUnary? &OP_NEG:&OP_SUB;
+        op = preUnary? &OP_NEG:&OP_SUB;
         break;
 
         case '<':
-        if (input.matchStr("<="))   op = &OP_LE;
-        if (input.matchCh('<'))     op = &OP_LT;
+        if (input.peekStr("<="))
+            op = &OP_LE;
+        else
+            op = &OP_LT;
         break;
 
         case '>':
-        if (input.matchStr(">="))   op = &OP_GE;
-        if (input.matchCh('>'))     op = &OP_GT;
+        if (input.peekStr(">="))
+            op = &OP_GE;
+        else if (input.peekStr(">"))
+            op = &OP_GT;
         break;
 
         case 'i':
-        if (input.matchStr("instanceof")) op = &OP_INST_OF;
-        if (input.matchStr("in")) op = &OP_IN;
+        if (input.peekStr("isa"))
+            op = &OP_ISA;
+        else if (input.peekStr("in"))
+            op = &OP_IN;
         break;
 
         case '=':
-        if (input.matchStr("=="))   op = &OP_EQ;
-        if (input.matchCh('='))     op = &OP_ASSIGN;
+        if (input.peekStr("=="))
+            op = &OP_EQ;
+        else if (input.peekStr("="))
+            op = &OP_ASSIGN;
         break;
 
         case '!':
-        if (input.matchStr("!="))   op = &OP_NE;
+        if (input.peekStr("!="))
+            op = &OP_NE;
         break;
 
         case 'a':
-        if (input.matchStr("and"))  op = &OP_AND;
+        if (input.peekStr("and"))
+            op = &OP_AND;
+        break;
+
+        case 'n':
+        if (input.peekStr("not"))
+            op = &OP_NOT;
         break;
 
         case 'o':
-        if (input.matchStr("or"))   op = &OP_OR;
+        if (input.peekStr("or"))
+            op = &OP_OR;
         break;
 
         default:
     }
 
-    // TODO
-    /*
     // If any operator was found
     if (op)
     {
         // If its precedence isn't high enough or it doesn't meet
         // the arity and associativity requirements
-        if ((op->prec < minPrec) ||
-            (preUnary && op->arity != 1) || 
-            (preUnary && op->assoc != 'r'))
+        if ((op.prec < minPrec) ||
+            (preUnary && op.arity != 1) || 
+            (preUnary && op.assoc != 'r'))
         {
-            // Backtrack to avoid consuming the operator
-            *input = beforeOp;
-            op = NULL;
+            return null;
+        }
+        else
+        {
+            input.matchStr(op.str);
         }
     }
-   */
 
     // Return the matched operator, if any
     return op;
@@ -696,9 +714,7 @@ ASTExpr parseAtom(Input input)
     // Array literal
     if (input.matchCh('['))
     {
-        // FIXME: need to create an ArrayExpr object
-        assert (false);
-        //return parseExprList(input, ']');
+        return new ArrayExpr(parseExprList(input, ']'));
     }
 
     // Object literal
@@ -978,7 +994,6 @@ unittest
     test_parse_fail("'invalid\\iesc'");
     test_parse_fail("'str' []");
 
-    /*
     // Array literals
     test_parse("[]");
     test_parse("[1]");
@@ -995,15 +1010,14 @@ unittest
     test_parse(":{x:3,y:2+z}");
     test_parse(":{x:3,y:2+z,}");
     test_parse_fail(":{,}");
-    */
 
     // Comments
-    //test_parse("1 // comment");
-    //test_parse("[ 1//comment\n,a ]");
-    //test_parse("1 /* comment */ + x");
-    //test_parse("1 /* // comment */ + x");
-    //test_parse_fail("1 // comment\n#1");
-    //test_parse_fail("1 /* */ */");
+    test_parse("1 // comment");
+    test_parse("[ 1//comment\n,a ]");
+    test_parse("1 /* comment */ + x");
+    test_parse("1 /* // comment */ + x");
+    test_parse_fail("1 // comment\n#1");
+    test_parse_fail("1 /* */ */");
 
     // Arithmetic expressions
     test_parse("a + b");
@@ -1032,7 +1046,6 @@ unittest
     test_parse("$api.file.v2.fopen");
     test_parse_fail("a.'b'");
 
-    /*
     // Array indexing
     test_parse("a[0]");
     test_parse("a[b]");
@@ -1040,7 +1053,6 @@ unittest
     test_parse("a[2*b+1]");
     test_parse_fail("a[]");
     test_parse_fail("a[0 1]");
-    */
 
     // If expression
     test_parse("if x then y");
@@ -1048,11 +1060,12 @@ unittest
     test_parse("if x then y else z");
     test_parse("if x then a+c else d");
     test_parse("if x then a else b");
-    /*test_parse("if a instanceof b then true");
+    test_parse("if a isa b then true");
     test_parse("if 'a' in b or 'c' in b then y");
     test_parse("if not x then y else z");
     test_parse("if x and not x then true else false");
     test_parse("if x <= 2 then y else z");
+    test_parse("if x == 1 then y else z");
     test_parse("if x == 1 then y+z else z+d");
     test_parse("if true then y else z");
     test_parse("if true or false then y else z");
@@ -1095,7 +1108,8 @@ unittest
     test_parse("fun (x,y) x+y");
     test_parse("fun (x,y) if x then y else 0");
     test_parse("obj.method = fun (this, x) this.x = x");
-    test_parse("let f = fun () 0\nf()");
+    test_parse("let f = fun () n");
+    test_parse("let f = fun () 0; f()");
     test_parse_fail("fun (x,y)");
     test_parse_fail("fun ('x') x");
     test_parse_fail("fun (x+y) y");
@@ -1111,7 +1125,6 @@ unittest
     test_parse_fail("{ a, }");
     test_parse_fail("{ a, b }");
     test_parse_fail("fun foo () { a, }");
-    */
 
     // Regressions
     test_parse_fail("'a' <'");

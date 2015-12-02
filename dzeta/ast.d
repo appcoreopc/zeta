@@ -448,6 +448,20 @@ class ObjExpr : ASTExpr
     }
 }
 
+/**
+Array literal
+*/
+class ArrayExpr : ASTExpr
+{
+    ASTExpr[] valExprs;
+
+    this(ASTExpr[] valExprs, SrcPos pos = null)
+    {
+        super(pos);
+        this.valExprs = valExprs;
+    }
+}
+
 // Maximum operator precedence
 const int MAX_PREC = 16;
 
@@ -477,7 +491,7 @@ immutable OpInfo OP_LE = { "<=", null, 2, 9, 'l', false };
 immutable OpInfo OP_GT = { ">", null, 2, 9, 'l', false };
 immutable OpInfo OP_GE = { ">=", null, 2, 9, 'l', false };
 immutable OpInfo OP_IN = { "in", null, 2, 9, 'l', false };
-immutable OpInfo OP_INST_OF = { "instanceof", null, 2, 9, 'l', false };
+immutable OpInfo OP_ISA = { "isa", null, 2, 9, 'l', false };
 
 /// Equality comparison
 immutable OpInfo OP_EQ = { "==", null, 2, 8, 'l', false };

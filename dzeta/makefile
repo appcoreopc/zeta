@@ -1,4 +1,5 @@
 D_SRCS=     \
+runtime.d   \
 ast.d       \
 parser.d    \
 main.d      \
