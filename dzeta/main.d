@@ -5,6 +5,11 @@ import codegen;
 
 void main(string[] args)
 {
+    if (args.length == 2 && args[1] == "--test")
+    {
+        return;
+    }
+
     if (args.length == 2)
     {
         auto fileName = args[1];
