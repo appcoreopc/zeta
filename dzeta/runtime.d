@@ -3,8 +3,20 @@ import std.array;
 import std.string;
 import std.conv;
 
-/// Value tag
-alias uint8_t Tag;
+/// Closure value type
+alias Value delegate() Clos;
+
+// Type tags
+enum Tag
+{
+    BOOL,
+    INT64,
+    FLOAT64,
+    STRING,
+    ARRAY,
+    OBJECT,
+    CLOS
+}
 
 /**
 Word value type
@@ -19,19 +31,12 @@ union Word
 
     /*
     heapptr_t heapptr;
-
-    array_t* array;
-    string_t* string;
-    shape_t* shape;
     object_t* object;
-
-    ast_fun_t* fun;
-    ast_decl_t* decl;
-
-    cell_t* cell;
-    clos_t* clos;
-    hostfn_t* hostfn;
     */
+
+    Value[] arr;
+    string str;
+    Clos clos;
 
     Tag tag;
 }
@@ -41,16 +46,39 @@ Tagged value pair type
 */
 struct Value
 {
-    Word word;
+    this(Word w, Tag t) { word = w; tag = t; }
+    this(int64_t v) { word.int64 = v; tag = Tag.INT64; }
 
+    Word word;
     Tag tag;
 }
 
-// TODO
-/*
-Value add(Value x, Value y)
-{
+immutable TRUE = Value(Word(0), Tag.BOOL);
+immutable FALSE = Value(Word(0), Tag.BOOL);
 
+Value print(Value v)
+{
+    import std.stdio;
+
+    switch (v.tag)
+    {
+        case Tag.INT64:
+        write("%s", v.word.int64);
+        break;
+
+        case Tag.STRING:
+        write("%s", v.word.str);
+        break;
+
+        default:
+        assert (false);
+    }
+
+    return FALSE;
 }
-*/
+
+Value rt_add(Value x, Value y)
+{
+    return Value(x.word.int64 + y.word.int64);
+}
 

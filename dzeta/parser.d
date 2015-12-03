@@ -1,6 +1,5 @@
 import std.c.stdlib;
 import std.stdio;
-import std.file;
 import std.format;
 import std.ascii;
 import std.stdint;
@@ -934,6 +933,8 @@ Parse a source file
 */
 ASTExpr parseFile(string fileName)
 {
+    import std.file;
+
     string src = readText!(string)(fileName);
 
     auto unit_fun = parseString(src, fileName);
@@ -1129,10 +1130,8 @@ unittest
     // Regressions
     test_parse_fail("'a' <'");
 
-    //parse_check_error(parse_file("global.zeta"));
-    //parse_check_error(parse_file("parser.zeta"));
-
-    //parseFile("tests/beer.zeta");
-    //parseFile("tests/list-sum.zeta");
+    parseFile("tests/beer.zeta");
+    parseFile("tests/list-sum.zeta");
+    parseFile("../benchmarks/fib42.zeta");
 }
 

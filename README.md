@@ -200,8 +200,11 @@ Some useful language extensions I can think of
 ## Plan of Action
 
 I'm currently writing a Zeta compiler in D, which will generate D code. This
-compiler will only be used to bootstap the language, however, it will not
-perform any optimizations. A more advanced, self-hosted Zeta compiler will be
+compiler will only be used to bootstap the language. It will not
+perform any optimizations and will not be particularly robust or
+user-friendly beyond what is needed for the initial bootstrap step.
+
+A more advanced, self-hosted Zeta compiler will be
 written in Zeta, and will target LLVM. This self-hosted compiler will use
 type inference to optimize code and will be able to generate executables.
 

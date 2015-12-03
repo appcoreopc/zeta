@@ -275,22 +275,6 @@ class UnOpExpr : ASTExpr
     }
 }
 
-// TODO: may want to replace ConstExpr with IntExpr, StringExpr, etc
-/**
-Constant value AST node
-Used for integers, floats and booleans
-*/
-class ConstExpr : ASTExpr
-{
-    // TODO: value
-    this(SrcPos pos = null)
-    {
-        super(pos);
-    }
-
-    //value_t val;
-}
-
 /**
 Variable reference node
 */
@@ -300,7 +284,7 @@ class RefExpr : ASTExpr
     string name;
 
     /// Resolved declaration, null if global
-    //ast_decl_t* decl;
+    DeclExpr decl = null;
 
     this(string name, SrcPos pos = null)
     {
