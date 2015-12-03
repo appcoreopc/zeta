@@ -48,6 +48,7 @@ struct Value
 {
     this(Word w, Tag t) { word = w; tag = t; }
     this(int64_t v) { word.int64 = v; tag = Tag.INT64; }
+    this(string v) { word.str = v; tag = Tag.STRING; }
 
     Word word;
     Tag tag;
@@ -74,6 +75,15 @@ Value print(Value v)
         assert (false);
     }
 
+    return FALSE;
+}
+
+Value println(Value v)
+{
+    import std.stdio;
+
+    print(v);
+    writeln("\n");
     return FALSE;
 }
 

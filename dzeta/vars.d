@@ -23,7 +23,7 @@ void findDecls(ASTExpr expr, FunExpr fun)
 
     /*
     // Object literal expression
-    if (shape == SHAPE_AST_OBJ)
+    if (objExpr = cast(ObjExpr)expr)
     {
         ast_obj_t* obj_expr = (ast_obj_t*)expr;
 
@@ -37,7 +37,7 @@ void findDecls(ASTExpr expr, FunExpr fun)
     }
 
     // Variable or constant declaration (let/var)
-    if (shape == SHAPE_AST_DECL)
+    if (declExpr = cast(DeclExpr)expr)
     {
         DeclExpr decl = (DeclExpr)expr;
 
@@ -215,7 +215,7 @@ void varRes(ASTExpr expr, FunExpr fun)
     }
 
     // Object literal expression
-    if (shape == SHAPE_AST_OBJ)
+    if (objExpr = cast(ObjExpr)expr)
     {
         ast_obj_t* obj_expr = (ast_obj_t*)expr;
 
@@ -229,7 +229,7 @@ void varRes(ASTExpr expr, FunExpr fun)
     }
 
     // Variable declaration, do nothing
-    if (shape == SHAPE_AST_DECL)
+    if (declExpr = cast(DeclExpr)expr)
     {
         return;
     }

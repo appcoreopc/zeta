@@ -7,11 +7,13 @@ void main(string[] args)
 {
     if (args.length == 2)
     {
-        writefln("input file: \"%s\"", args[1]);
+        auto fileName = args[1];
 
+        writefln("input file: \"%s\"", fileName);
 
+        auto unit = parseFile(fileName);
 
-
+        genProgram([unit], "out.d");
     }
 }
 

@@ -907,7 +907,7 @@ ASTExpr parseExpr(Input input, int minPrec = 0)
 /**
 Parse a source unit from an input object
 */
-ASTExpr parseUnit(Input input)
+FunExpr parseUnit(Input input)
 {
     // Create a sequence expression from the expression list
     auto seqExpr = parseSeqExpr(input, '\0');
@@ -918,7 +918,7 @@ ASTExpr parseUnit(Input input)
 /**
 Parse a source string as a unit
 */
-ASTExpr parseString(string str, string srcName)
+FunExpr parseString(string str, string srcName)
 {
     auto input = new Input(
         str,
@@ -931,7 +931,7 @@ ASTExpr parseString(string str, string srcName)
 /**
 Parse a source file
 */
-ASTExpr parseFile(string fileName)
+FunExpr parseFile(string fileName)
 {
     import std.file;
 
