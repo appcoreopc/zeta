@@ -1,7 +1,4 @@
 import std.stdint;
-import std.array;
-import std.string;
-import std.conv;
 
 /// Closure value type
 alias Value delegate() Clos;
@@ -57,6 +54,44 @@ struct Value
 immutable TRUE = Value(Word(0), Tag.BOOL);
 immutable FALSE = Value(Word(0), Tag.BOOL);
 
+bool rt_boolEval(Value v)
+{
+    return v.tag is Tag.BOOL && v.word.int8 == TRUE.word.int8;
+}
+
+Value rt_add(Value x, Value y)
+{
+    assert (x.tag == Tag.INT64 && y.tag == Tag.INT64);
+    return Value(x.word.int64 + y.word.int64);
+}
+
+Value rt_sub(Value x, Value y)
+{
+    assert (x.tag == Tag.INT64 && y.tag == Tag.INT64);
+    return Value(x.word.int64 - y.word.int64);
+}
+
+Value rt_mul(Value x, Value y)
+{
+    assert (x.tag == Tag.INT64 && y.tag == Tag.INT64);
+    return Value(x.word.int64 * y.word.int64);
+}
+
+Value rt_assert(Value val, Value str)
+{
+    import std.stdio;
+    import std.c.stdlib;
+
+    if (val.tag !is Tag.BOOL || val.word.int8 == 0)
+    {
+        write("assertion failed: ");
+        println(str);
+        exit(-1);
+    }
+
+    return FALSE;
+}
+
 Value print(Value v)
 {
     import std.stdio;
@@ -69,6 +104,10 @@ Value print(Value v)
 
         case Tag.STRING:
         write("%s", v.word.str);
+        break;
+
+        case Tag.BOOL:
+        write((v.word.int8 == TRUE.word.int8)? "true":"false");
         break;
 
         default:
@@ -85,10 +124,5 @@ Value println(Value v)
     print(v);
     writeln("\n");
     return FALSE;
-}
-
-Value rt_add(Value x, Value y)
-{
-    return Value(x.word.int64 + y.word.int64);
 }
 

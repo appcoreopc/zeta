@@ -373,6 +373,10 @@ void varResPass(FunExpr fun, FunExpr parent)
 
 unittest
 {
+    void test(string fileName)
+    {
+    }
+
     // TODO: test on full source files
 
 

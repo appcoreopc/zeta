@@ -942,34 +942,34 @@ FunExpr parseFile(string fileName)
     return unit_fun;
 }
 
-/// Test that the parsing of a source unit succeeds
-void test_parse(string str)
-{
-    writefln("%s", str);
-
-    parseString(str, "parser_test");
-}
-
-/// Test that the parsing of a source unit fails
-void test_parse_fail(string str)
-{
-    writefln("%s", str);
-
-    try
-    {
-        parseString(str, "parser_fail_test");
-    }
-    catch (Error e)
-    {
-        return;
-    }
-
-    writefln("parsing did not fail for:\n\"%s\"", str);
-    exit(-1);
-}
-
 unittest
 {
+    /// Test that the parsing of a source unit succeeds
+    void test_parse(string str)
+    {
+        writefln("%s", str);
+
+        parseString(str, "parser_test");
+    }
+
+    /// Test that the parsing of a source unit fails
+    void test_parse_fail(string str)
+    {
+        writefln("%s", str);
+
+        try
+        {
+            parseString(str, "parser_fail_test");
+        }
+        catch (Error e)
+        {
+            return;
+        }
+
+        writefln("parsing did not fail for:\n\"%s\"", str);
+        exit(-1);
+    }
+
     writeln("core parser tests");
 
     // Identifiers

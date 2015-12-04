@@ -13,13 +13,38 @@ void genExpr(Output* d, ASTExpr expr)
 {
     if (auto strExpr = cast(StringExpr)expr)
     {
+        // TODO: string escaping
         d.put("Value(\"" ~ strExpr.val ~ "\")");
+        return;
+    }
+
+    if (auto intExpr = cast(IntExpr)expr)
+    {
+        d.put("Value(" ~ to!string(intExpr.val) ~ ")");
+        return;
+    }
+
+    if (cast(TrueExpr)expr)
+    {
+        d.put("TRUE");
+        return;
+    }
+
+    if (cast(FalseExpr)expr)
+    {
+        d.put("FALSE");
         return;
     }
 
     if (auto refExpr = cast(RefExpr)expr)
     {
-        d.put(refExpr.name);
+        auto name = refExpr.name;
+
+        // Rewrite symbols we cannot use in D
+        if (name == "assert")
+            name = "rt_assert";            
+
+        d.put(name);
         return;
     }
 
@@ -46,6 +71,36 @@ void genExpr(Output* d, ASTExpr expr)
             genExpr(d, subExpr);
             d.put(";");
         }
+
+        return;
+    }
+
+    if (auto binExpr = cast(BinOpExpr)expr)
+    {
+        if (binExpr.op is &OP_ADD)
+        {
+            d.put("rt_add");
+            d.put("(");
+            genExpr(d, binExpr.lExpr);
+            d.put(", ");
+            genExpr(d, binExpr.rExpr);
+            d.put(")");
+        }
+
+        return;
+    }
+
+    if (auto ifExpr = cast(IfExpr)expr)
+    {
+        d.put("if (rt_boolEval(");
+        genExpr(d, ifExpr.testExpr);
+        d.put(")) {");
+        genExpr(d, ifExpr.thenExpr);
+        d.put(";");
+        d.put("}else{");
+        genExpr(d, ifExpr.elseExpr);
+        d.put(";");
+        d.put("}");
 
         return;
     }
@@ -101,10 +156,11 @@ string indentText(string inStr)
     {
         if (ch == '{')
         {
-            level++;
             o.put("\n");
+            indent();
             o.put("{");
             o.put("\n");
+            level++;
             indent();
         }
         else if (ch == ';')
@@ -121,9 +177,13 @@ string indentText(string inStr)
         {
             level--;
             o.put("\n");
+            indent();
             o.put("}");
             o.put("\n");
-            o.put("\n");
+            indent();
+
+            if (level is 0)
+                o.put("\n");
         }
         else
         {

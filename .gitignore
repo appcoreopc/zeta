@@ -32,4 +32,6 @@
 *.dSYM/
 
 dzeta/zeta
+dzeta/out
+dzeta/out.d
 
